@@ -69,6 +69,9 @@ legend_linewidth=2.0
     
     
 plot_params={"plot":{"linewidth":general_plots_linewidth},
+             "semilogx":{"linewidth":general_plots_linewidth},
+             "semilogy":{"linewidth":general_plots_linewidth},
+             "loglog":{"linewidth":general_plots_linewidth},
              "vline":{"linewidth":general_plots_linewidth,"dashes":[]},
              "hline":{"linewidth":general_plots_linewidth,"dashes":[]},
              "scatter":{"s":scatter_size},
@@ -192,6 +195,9 @@ def update(subp=1):   #FIGURE
     
     
     plot_params={"plot":{"linewidth":general_plots_linewidth},
+                 "semilogx":{"linewidth":general_plots_linewidth},
+                 "semilogy":{"linewidth":general_plots_linewidth},
+                 "loglog":{"linewidth":general_plots_linewidth},
                  "vline":{"linewidth":general_plots_linewidth,"dashes":[]},
                  "hline":{"linewidth":general_plots_linewidth,"dashes":[]},
                  "scatter":{"s":scatter_size},

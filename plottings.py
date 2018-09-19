@@ -1,8 +1,5 @@
-#!/usr/bin/python2.7
-# -*- coding: utf8 -*-
 '''
 Created on 15 sept. 2017
-
 @author: Guillaume Gaillard
 '''
 import os
@@ -22,11 +19,12 @@ import config_plottings as conf
 
 
 
+
 """ DOCUMENTATION PARAMETERS """
 
 plot_params={}
 function_params={}
-plot_types=['plot',"scatter","boxplot","vline","hline","vspan","hspan","annotate","imshow","bar","text","table"]
+plot_types=['plot',"semilogx","semilogy","loglog","scatter","boxplot","vline","hline","vspan","hspan","annotate","imshow","bar","text","table"]
 args_params={}
 details={"plot_params":{},"func_params":{}}
 for plot_type in plot_types:
@@ -87,6 +85,27 @@ args_params["plot"]["type"]="""The type of plot function: 'plot'."""
 args_params["plot"]["y_values"]="""The y values of the curve to plot"""
 args_params["plot"]["x_values"]="""The x values of the curve to plot. \n Default range of x axis"""
 details["func_params"]["plot"]["linewidth"]="""Default in config_plotting."""         
+
+function_params["semilogx"]="""The basic curve plot function."""
+args_params["semilogx"]["legend"]="""The legend associated with the plot function."""
+args_params["semilogx"]["type"]="""The type of plot function: 'plot'."""
+args_params["semilogx"]["y_values"]="""The y values of the curve to plot"""
+args_params["semilogx"]["x_values"]="""The x values of the curve to plot. \n Default range of x axis"""
+details["func_params"]["semilogx"]["linewidth"]="""Default in config_plotting."""         
+
+function_params["semilogy"]="""The basic curve plot function."""
+args_params["semilogy"]["legend"]="""The legend associated with the plot function."""
+args_params["semilogy"]["type"]="""The type of plot function: 'plot'."""
+args_params["semilogy"]["y_values"]="""The y values of the curve to plot"""
+args_params["semilogy"]["x_values"]="""The x values of the curve to plot. \n Default range of x axis"""
+details["func_params"]["semilogy"]["linewidth"]="""Default in config_plotting."""         
+
+function_params["loglog"]="""The basic curve plot function."""
+args_params["loglog"]["legend"]="""The legend associated with the plot function."""
+args_params["loglog"]["type"]="""The type of plot function: 'plot'."""
+args_params["loglog"]["y_values"]="""The y values of the curve to plot"""
+args_params["loglog"]["x_values"]="""The x values of the curve to plot. \n Default range of x axis"""
+details["func_params"]["loglog"]["linewidth"]="""Default in config_plotting."""  
 
 function_params["scatter"]="""The basic point plot function."""
 args_params["scatter"]["legend"]="""The legend associated with the plot function."""    
@@ -240,7 +259,7 @@ def prepare_plots(plot_data):
             
             prepared_params=["type"]
             
-            if ptype=="plot":
+            if ptype in ["plot","semilogx","semilogy","loglog"]:
                 if "x_values" in plot_data[plot]["values"][cloud]:
                     plot_func["args"]=[plot_data[plot]["values"][cloud]["x_values"],plot_data[plot]["values"][cloud]["y_values"]]
                 else:
@@ -419,7 +438,17 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             
             if plot_func["func_name"]=="plot":
                 plt.plot(*plot_func["args"], **kawargs)
-
+                #plt.semilogx(*plot_func["args"], **kawargs)
+            
+            if plot_func["func_name"]=="semilogx":
+                plt.semilogx(*plot_func["args"], **kawargs)
+            
+            if plot_func["func_name"]=="semilogy":
+                plt.semilogy(*plot_func["args"], **kawargs)
+            
+            if plot_func["func_name"]=="loglog":
+                plt.loglog(*plot_func["args"], **kawargs)
+                
             if plot_func["func_name"]=="annotate":
                 plt.annotate(*plot_func["args"], **kawargs)
             
@@ -609,6 +638,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                     myhandles, mylabels = plt.gca().get_legend_handles_labels()
                     #print(myhandles,mylabels)
                     if len(myhandles)!=0:
+                        #myhandles[0].set_linewidth(28)
                         leg=plt.legend(fontsize=conf.legend_labels_font_size,markerscale=conf.legend_markerscale, loc=leg_loc)   
             
             if leg:   
@@ -709,7 +739,7 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
     
     
     axes={}
-    nb_pages=len(prepared_plots)/(nb_plots_vert*nb_plots_hor)
+    nb_pages=int(len(prepared_plots)/(nb_plots_vert*nb_plots_hor))
     if len(prepared_plots)%(nb_plots_vert*nb_plots_hor)!=0:
         nb_pages+=1
     
@@ -720,7 +750,7 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
         
         for plot_index in range(len(sppk)):
             plot=sppk[plot_index]
-            page=plot_index/(nb_plots_vert*nb_plots_hor)
+            page=int(plot_index/(nb_plots_vert*nb_plots_hor))
             plot_id=plot_index%(nb_plots_vert*nb_plots_hor)
             if page>page_id:
                 break
@@ -837,6 +867,66 @@ if __name__ == '__main__':
                   "legends":{"manual_legends":legend_example},
                   "grid":{"which":'major',"axis":"both"},
                   "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
+              20:{"values":{0:{"type":"plot","y_values":np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
+                            1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
+                            2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, 
+                            },
+                  "colors":["red","green","blue"],
+                  "plot_types":"example",
+                  "file_to_save":"example1.png",
+                  "format_to_save":"png", ##png, pdf, ps, eps or svg.
+                  "dir_to_save":"test_plots_gen",
+                  "y_axis_label":"y label",
+                  "x_axis_label":"th x lbel",
+                  "title":"the title of the plot",
+                  "legends":{"manual_legends":legend_example},
+                  "grid":{"which":'major',"axis":"both"},
+                  "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
+              21:{"values":{0:{"type":"semilogx","y_values":np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
+                            1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
+                            2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, 
+                            },
+                  "colors":["red","green","blue"],
+                  "plot_types":"example",
+                  "file_to_save":"example1.png",
+                  "format_to_save":"png", ##png, pdf, ps, eps or svg.
+                  "dir_to_save":"test_plots_gen",
+                  "y_axis_label":"y label",
+                  "x_axis_label":"th x lbel",
+                  "title":"semilogx and plot",
+                  "legends":{"manual_legends":legend_example},
+                  "grid":{"which":'major',"axis":"both"},
+                  "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
+              22:{"values":{0:{"type":"semilogy","y_values":np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
+                            1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
+                            2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, 
+                            },
+                  "colors":["red","green","blue"],
+                  "plot_types":"example",
+                  "file_to_save":"example1.png",
+                  "format_to_save":"png", ##png, pdf, ps, eps or svg.
+                  "dir_to_save":"test_plots_gen",
+                  "y_axis_label":"y label",
+                  "x_axis_label":"th x lbel",
+                  "title":"semilogy and plot",
+                  "legends":{"manual_legends":legend_example},
+                  "grid":{"which":'major',"axis":"both"},
+                  "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
+              23:{"values":{0:{"type":"loglog","y_values":np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
+                            1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
+                            2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, 
+                            },
+                  "colors":["red","green","blue"],
+                  "plot_types":"example",
+                  "file_to_save":"example1.png",
+                  "format_to_save":"png", ##png, pdf, ps, eps or svg.
+                  "dir_to_save":"test_plots_gen",
+                  "y_axis_label":"y label",
+                  "x_axis_label":"th x lbel",
+                  "title":"loglog and plot",
+                  "legends":{"manual_legends":legend_example},
+                  "grid":{"which":'major',"axis":"both"},
+                  "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
                4:{"values":{
                             3:{"type":"imshow","matrix_colors":[([0.3, 0.4, 1], [0.0, 0.0, 0.0]),([0.3, 1, 1], [0.3, 0.3, 1])]},
                             4:{"type":"hline","y_pos":4.4, 'x_axis_prop_range':[0.1,0.6], 'color_index':0,"color":"red", "linewidth":4., "solid_capstyle":'round'},
@@ -892,7 +982,7 @@ if __name__ == '__main__':
                   "dir_to_save":"test_plots_gen",
                   "y_axis_label":"scat y label",
                   "x_axis_label":"scat x lbel",
-                  "title":"double scatter example",
+                  "title":"double scatter example 1",
                   "legends":{"italic_legends":True}},
                2:{"values":{0:{"type":"boxplot",'x_values':[5,6,7],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.7, "color":"green", "linewidth":3., 'fill':True, 'legend':'AHAHAH?'},
                             1:{"type":"boxplot",'x_values':[1,2,3],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.37, "color":"purple", 'legend':'red, no?'}}, 
@@ -929,7 +1019,7 @@ if __name__ == '__main__':
                   "dir_to_save":"test_plots_gen",
                   "y_axis_label":"scat y label",
                   "x_axis_label":"scat x lbel",
-                  "title":"double scatter example",
+                  "title":"double scatter example 2",
                   "legends":{"italic_legends":True,
                              "legend_loc":"best"}, #right, center left, upper right, lower right, best, center, lower left, center right, upper left, upper center, lower center
                   "x_ticks":{"major":{"range_step":1, "from":0, "to":10}},
