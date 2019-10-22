@@ -15,8 +15,11 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 
-import config_plottings as conf
-
+#from wrapper_plottings 
+try:
+	from . import config_plottings as conf
+except ImportError:
+	import config_plottings as conf
 
 
 
@@ -225,6 +228,8 @@ for plot_type in plot_types:
 
 def prepare_plots(plot_data):
     prepared_plots={}
+    len_data=len(plot_data)
+    prepared=0
     for plot in plot_data:
         prepared_plots[plot]={}
         
@@ -385,7 +390,9 @@ def prepare_plots(plot_data):
             del plot_func
                                 
         
-                
+        prepared+=1
+        if (prepared%50==0):
+        	print("prepared {0}/{1}".format(prepared,len_data))        
                         
             
     return prepared_plots
@@ -746,6 +753,7 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
     sppk=sorted(prepared_plots.keys())
     
     for page_id in range(nb_pages):
+        print("setting page {0}/{1}...".format(page_id+1,nb_pages))
         plt.figure(num=page_id, figsize=conf.figsize, dpi=conf.dpi)
         
         for plot_index in range(len(sppk)):
