@@ -125,6 +125,7 @@ args_params["boxplot"]["y_sets"]="""The sets of y values of the data points."""
 args_params["boxplot"]["x_values"]="""The x positions of the boxplots."""
 args_params["boxplot"]["x_size"]="""The width of the box plots."""
 details["func_params"]["boxplot"]["linewidth"]="""lw of the boxplot lines. Default exists in config_plotting."""    
+details["func_params"]["boxplot"]["linestyle"]="""ls of the boxplot lines. Default exists in config_plotting."""    
 details["func_params"]["boxplot"]["fill"]="""Boolean filling facecolor for inside the bp. Default False."""    
 details["func_params"]["boxplot"]["fill_color"]="""The filling facecolor for inside the bp. Default cyan."""    
 details["func_params"]["boxplot"]["x_size"]="""The width is constant in current wrapper."""    
@@ -530,24 +531,28 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                         not_legended=False
                     if "color" in kawargs:
                         element.set_color(kawargs["color"])#conf.colors[plot_func["color_index"]]
-                    element.set_linestyle('solid')#('dashed')
+#                    element.set_linestyle('solid')#('dashed')
+                    element.set_linestyle(kawargs["linestyle"])#('dashed')
                     element.set_linewidth(kawargs["linewidth"])
                 for element in my_box_plot[func_id]['boxes']:
                     if "color" in kawargs:
                         element.set_edgecolor(kawargs["color"])
                     element.set_facecolor(kawargs["fill_color"])
                     element.set_linewidth(kawargs["linewidth"])
-                    element.set_linestyle('solid')#('dashed')
+#                    element.set_linestyle('solid')#('dashed')
+                    element.set_linestyle(kawargs["linestyle"])#('dashed')
                     element.set_fill(kawargs["fill"])
                     #element.set_hatch('/')
                 for element in my_box_plot[func_id]['whiskers']:
                     if "color" in kawargs:
                         element.set_color(kawargs["color"])#conf.colors[plot_func["color_index"]]
                     element.set_linewidth(kawargs["linewidth"])
+                    element.set_linestyle(kawargs["linestyle"])#('dashed')
                 for element in my_box_plot[func_id]['caps']:
                     if "color" in kawargs:
                         element.set_color(kawargs["color"])#(colors[sheet_names.index(sheet)])#('blue')
                     element.set_linewidth(kawargs["linewidth"])
+                    element.set_linestyle(kawargs["linestyle"])#('dashed')
                     
                 
             func_id+=1
