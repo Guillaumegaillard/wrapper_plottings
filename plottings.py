@@ -27,7 +27,7 @@ except ImportError:
 
 plot_params={}
 function_params={}
-plot_types=['plot',"semilogx","semilogy","loglog","scatter","boxplot","vline","hline","vspan","hspan","annotate","imshow","bar","text","table"]
+plot_types=["plot","polar","semilogx","semilogy","loglog","scatter","boxplot","vline","hline","vspan","hspan","annotate","imshow","bar","text","table"]
 args_params={}
 details={"plot_params":{},"func_params":{}}
 for plot_type in plot_types:
@@ -69,6 +69,11 @@ plot_params["xmin"]="""The min value shown on the x axis."""
 plot_params["xmax"]="""The max value shown on the x axis."""
 plot_params["ymin"]="""The min value shown on the y axis."""
 plot_params["ymax"]="""The max value shown on the y axis."""
+plot_params["axes_projection"]="""The projection of the axes. Can be in ['polar'] but not for func in ['semilogx','semilogy','loglog']"""
+plot_params["theta_max"]="""The max value shown on the theta axis."""
+plot_params["theta_min"]="""The min value shown on the theta axis."""
+plot_params["rmax"]="""The max value shown on the r axis."""
+plot_params["rmin"]="""The min value shown on the r axis."""
 plot_params["grid"]="""Set a grid on the plot."""
 details["plot_params"]["grid"]="""E.G.: "grid":{"which":'major',"axis":"both"} will grid on major ticks in x and y directions."""
 plot_params["axis_off"]="""Remove the display of the axes of the plot"""
@@ -88,6 +93,19 @@ args_params["plot"]["type"]="""The type of plot function: 'plot'."""
 args_params["plot"]["y_values"]="""The y values of the curve to plot"""
 args_params["plot"]["x_values"]="""The x values of the curve to plot. \n Default range of x axis"""
 details["func_params"]["plot"]["linewidth"]="""Default in config_plotting."""         
+
+
+function_params["polar"]="""The polar plot function. Same as plot with axes projection polar (y <-> r, theta <-> x)"""
+args_params["polar"]["legend"]="""The legend associated with the plot function."""
+args_params["polar"]["type"]="""The type of plot function: 'polar'."""
+args_params["polar"]["r_values"]="""The r values of the polar curve to plot"""
+args_params["polar"]["theta_values"]="""The theta values of the curve to plot."""
+details["func_params"]["polar"]["linewidth"]="""Default in config_plotting."""
+details["func_params"]["polar"]["theta_min"]="""Default in config_plotting."""
+details["func_params"]["polar"]["theta_max"]="""Default in config_plotting."""
+details["func_params"]["polar"]["rmin"]="""Default in config_plotting."""
+details["func_params"]["polar"]["rmax"]="""Default in config_plotting."""
+
 
 function_params["semilogx"]="""The basic curve plot function."""
 args_params["semilogx"]["legend"]="""The legend associated with the plot function."""
@@ -250,6 +268,11 @@ def prepare_plots(plot_data):
                       "xmax",
                       "ymin",
                       "ymax",
+                      "axes_projection",
+                      "theta_min",
+                      "theta_max",
+                      "rmin",
+                      "rmax",
                       "grid",
                       "axis_off",
                       "color_bar",
@@ -272,6 +295,11 @@ def prepare_plots(plot_data):
                     plot_func["args"]=[plot_data[plot]["values"][cloud]["y_values"]]       
                 
                 prepared_params+=["x_values","y_values"]
+                
+            
+            if ptype=="polar":
+                plot_func["args"]=[plot_data[plot]["values"][cloud]["theta_values"],plot_data[plot]["values"][cloud]["r_values"]]
+                prepared_params+=["theta_values","r_values"]
             
             if ptype=="scatter":
                 plot_func["args"]=[plot_data[plot]["values"][cloud]["x_values"],plot_data[plot]["values"][cloud]["y_values"]]
@@ -404,8 +432,10 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
     for plot in prepared_plots:
         #this fig
         if not from_page:
-            #fig=
-            plt.figure(num=plot, figsize=conf.figsize, dpi=conf.dpi)#, facecolor, edgecolor, frameon, FigureClass)
+            fig=plt.figure(num=plot, figsize=conf.figsize, dpi=conf.dpi)#, facecolor, edgecolor, frameon, FigureClass)
+            if 'axes_projection' in prepared_plots[plot]:
+                if prepared_plots[plot]['axes_projection']=='polar':
+                    polax = fig.add_subplot(111, polar=True)
         #titles
         if "x_axis_label" in prepared_plots[plot]:
             plt.xlabel(prepared_plots[plot]["x_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font)
@@ -447,6 +477,9 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             if plot_func["func_name"]=="plot":
                 plt.plot(*plot_func["args"], **kawargs)
                 #plt.semilogx(*plot_func["args"], **kawargs)
+            
+            if plot_func["func_name"]=="polar":
+                plt.polar(*plot_func["args"], **kawargs)
             
             if plot_func["func_name"]=="semilogx":
                 plt.semilogx(*plot_func["args"], **kawargs)
@@ -576,7 +609,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             labelsize=conf.ticks_labels_font_size+extra_xtick_label_size) # labels along the bottom edge are off
             
         plt.tick_params(
-            axis='y',          # changes apply to the x-axis
+            axis='y',          # changes apply to the y-axis
             which='both',      # both major and minor ticks are affected
             labelsize=conf.ticks_labels_font_size+extra_ytick_label_size) # labels along the bottom edge are off
         
@@ -622,6 +655,22 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             plt.ylim(ymin=prepared_plots[plot]["ymin"])
         if "ymax" in prepared_plots[plot]:
             plt.ylim(ymax=prepared_plots[plot]["ymax"])
+        
+        #projection polar
+        if 'axes_projection' in prepared_plots[plot]:
+            if prepared_plots[plot]['axes_projection']=='polar':
+                plt.gca().set_thetamin(0)
+                plt.gca().set_thetamax(360)
+                plt.gca().set_rmax(60)
+                plt.gca().set_rmin(0)
+        if "theta_min" in prepared_plots[plot]:
+            plt.gca().set_thetamin(prepared_plots[plot]["theta_min"]/np.pi*180)
+        if "theta_max" in prepared_plots[plot]:
+            plt.gca().set_thetamax(prepared_plots[plot]["theta_max"]/np.pi*180)
+        if "rmin" in prepared_plots[plot]:
+            plt.gca().set_rmin(prepared_plots[plot]["rmin"])
+        if "rmax" in prepared_plots[plot]:
+            plt.gca().set_rmax(prepared_plots[plot]["rmax"])
             
         
         #legends
@@ -763,13 +812,18 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
         
         for plot_index in range(len(sppk)):
             plot=sppk[plot_index]
+            # print(prepared_plots[plot])
             page=int(plot_index/(nb_plots_vert*nb_plots_hor))
             plot_id=plot_index%(nb_plots_vert*nb_plots_hor)
             if page>page_id:
                 break
             if page==page_id:
-           
-                axes[plot]=plt.subplot(nb_plots_vert,nb_plots_hor,plot_id+1)
+                polar=False
+                if 'axes_projection' in prepared_plots[plot]:
+                    if prepared_plots[plot]['axes_projection']=='polar':
+                        polar=True
+                        
+                axes[plot]=plt.subplot(nb_plots_vert,nb_plots_hor,plot_id+1,polar=polar)
                 
                 if plot in prepared_plots:
                     plot_indivs({0:dict(prepared_plots[plot])},show=False,file_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=True)
@@ -1058,7 +1112,42 @@ if __name__ == '__main__':
                   "xmax":10,
                   "ymax":10,
                   "legends":{"italic_legends":True}},}
-    
+    some_data[25]={
+          "values":{
+            0:{"type":"plot","y_values":[0, 20, 15], "x_values":[0,np.pi/4,np.pi/8],  'color':'purple', "linewidth":4., 'legend':'plot proj polar'},
+            1:{"type":"plot","y_values":20+10*np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
+            2:{"type":"polar","r_values":[0, 20, 15], "theta_values":[0,np.pi/4+1,np.pi/8+1],  'color_index':1, "linewidth":4., 'legend':'plt.polar'},
+          }, 
+          "plot_types":"aekufhqilruy",
+          "axes_projection":"polar",
+          "title":"Polar plots",
+          "theta_min":-np.pi/4, 
+          "theta_max":np.pi/2+1.,
+          "rmax":50,
+    }       
+
+    some_data[26]={
+            "axes_projection":"polar",
+            "rmax":7,
+            "values":{
+                0:{"type":"scatter",'x_values':[5,6,7],'y_values':[1,5,2], 'color_index':0, 'legend':'black 128'},
+                1:{"type":"scatter",'x_values':[4,5,3],'y_values':[1.5,5.5,1.6], 'color_index':1, 'legend':'red scatter, no?'},
+                2:{"type":"boxplot",'x_values':[5,6,7],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.7, 'fill':True, 'legend':'AHAHAH?'},
+                3:{"type":"boxplot",'x_values':[1,2,3],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.37, "color":"purple", 'legend':'red, no?'},
+                4:{"type":"plot","y_values":np.log(range(1,10))}}, 
+            "plot_types":"multi",
+            "file_to_save":"multi_example.png",
+            "format_to_save":"png", ##png, pdf, ps, eps or svg.
+            "dir_to_save":"test_plots_gen",
+            "y_axis_label":"scat y label",
+            "x_axis_label":"scat x lbel",
+            "title":"double scatter example 2",
+            "legends":{
+                "italic_legends":True,
+                "legend_loc":"best"}, #right, center left, upper right, lower right, best, center, lower left, center right, upper left, upper center, lower center
+                "x_ticks":{"major":{"range_step":1, "from":0, "to":10}},
+                "axis_off":True}
+
 
     
     prepared_plots=prepare_plots(some_data)
