@@ -11,6 +11,7 @@ fig_profile="A4"
 #fig_profile="Springer_journal"
 #fig_profile="Springer_book"
 #fig_profile="PDF_guigui"
+#fig_profile="plot_show"
 
 fig_orientation="landscape"
 #fig_orientation="portrait"
@@ -22,9 +23,11 @@ def set_fig(profile,orientation,nb_column_width=2):
     fig_profile=profile
     fig_orientation=orientation
     fig_nb_column_width=nb_column_width
+    print(fig_profile)
     
 #CONSTANTS
 a4=(11.68,8.26)
+show_prop=3
 inch= 0.0393701 #one mm in inches
 
 #FINAL SPRINGER PAPER CONSTANTS
@@ -97,6 +100,12 @@ def update(subp=1):   #FIGURE
             figsize=(a4[0],a4[1])    
         if fig_orientation=="portrait":
             figsize=(a4[1],a4[0])
+
+    if fig_profile=="plot_show":
+        if fig_orientation=="landscape":
+            figsize=(a4[0]/show_prop,a4[1]/show_prop)      
+        if fig_orientation=="portrait":
+            figsize=(a4[1]/show_prop,a4[0]/show_prop)
     
     if fig_profile=="Springer_journal":
         if fig_orientation=="landscape":
@@ -159,6 +168,24 @@ def update(subp=1):   #FIGURE
         
         scatter_size=subp**(-1)*50
         general_plots_linewidth=subp**(-1)*1.
+
+    if fig_profile=="plot_show":
+        dpi=300 #only for non-vector formats
+        
+        axes_labels_font_size=subp**(-1)*25/show_prop
+        legend_labels_font_size=subp**(-1)*25/show_prop
+        ticks_labels_font_size=subp**(-1)*22/show_prop
+        title_font_size=subp**(-1)*30/show_prop
+        title_and_axes_labelpad=subp**(-1)*15
+        
+        legend_markerscale=1.+subp**(-1)*.5
+        legend_border_width=subp**(-1)*1
+        legend_border_color='black'
+        legend_linewidth=subp**(-1)*2.0
+        
+        scatter_size=subp**(-1)*50
+        general_plots_linewidth=subp**(-1)*1.
+
     
     if fig_profile=="Springer_journal":
         dpi=600 #only for non-vector formats

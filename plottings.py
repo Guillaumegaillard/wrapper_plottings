@@ -796,9 +796,11 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             
 def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None):
     
+    if show:
+        conf.set_fig("plot_show","landscape",nb_column_width=1)
+        
     conf.update(max(nb_plots_vert,nb_plots_hor))
-    
-    
+        
     axes={}
     nb_pages=int(len(prepared_plots)/(nb_plots_vert*nb_plots_hor))
     if len(prepared_plots)%(nb_plots_vert*nb_plots_hor)!=0:
@@ -808,6 +810,7 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
     
     for page_id in range(nb_pages):
         print("setting page {0}/{1}...".format(page_id+1,nb_pages))
+        
         plt.figure(num=page_id, figsize=conf.figsize, dpi=conf.dpi)
         
         for plot_index in range(len(sppk)):
