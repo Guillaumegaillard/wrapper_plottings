@@ -48,8 +48,9 @@ figsize=(a4[0],a4[1])
 dpi=300 #only for non-vector formats
 
 hfont = {'fontname':'Helvetica'}
+dfont = {'fontname':'DejaVu Sans'}
 afont = {'fontname':'Arial'}
-used_font=afont
+used_font=dfont
 
 colors=['black','red']
 #manage  colorbar colors
@@ -84,7 +85,7 @@ plot_params={"plot":{"linewidth":general_plots_linewidth},
              "hspan":{"alpha":0.5},
              "vspan":{"alpha":0.5},
              "imshow":{"interpolation":'nearest',"aspect":'auto', "origin":'lower'},
-             "text":{"fontdict":{'fontname':'Arial',"fontsize":ticks_labels_font_size}},
+             "text":{"fontdict":{'fontname':used_font['fontname'],"fontsize":ticks_labels_font_size}},
              "annotate":{"size":ticks_labels_font_size},
              "table":{'loc':'center',"cellLoc":'center', "rowLoc":'center',"colLoc":'center','fontsize':ticks_labels_font_size}}                
 
@@ -140,8 +141,9 @@ def update(subp=1):   #FIGURE
                 figsize=(1.*book_two_columns_width*inch,0.5*book_height*inch)
                         
     hfont = {'fontname':'Helvetica'}
+    dfont = {'fontname':'DejaVu Sans'}
     afont = {'fontname':'Arial'}
-    used_font=afont
+    used_font=dfont
     
     colors=['black','red']
     #manage  colorbar colors
@@ -235,7 +237,7 @@ def update(subp=1):   #FIGURE
                  "hspan":{"alpha":0.5},
                  "vspan":{"alpha":0.5},
                  "imshow":{"interpolation":'nearest',"aspect":'auto', "origin":'lower'},
-                 "text":{"fontdict":{'fontname':'Arial',"fontsize":ticks_labels_font_size}},
+                 "text":{"fontdict":{'fontname':used_font['fontname'],"fontsize":ticks_labels_font_size}},
                  "annotate":{"size":ticks_labels_font_size},
                  "table":{'loc':'center',"cellLoc":'center', "rowLoc":'center',"colLoc":'center','fontsize':ticks_labels_font_size}}                
 

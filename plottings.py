@@ -21,7 +21,7 @@ try:
 except ImportError:
 	import config_plottings as conf
 
-
+plot_has_been_shown=False
 
 """ DOCUMENTATION PARAMETERS """
 
@@ -795,6 +795,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 
             
 def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None):
+    global plot_has_been_shown
     
     if show:
         conf.set_fig("plot_show","landscape",nb_column_width=1)
@@ -835,7 +836,7 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
         plt.tight_layout()
         
         if file_to_save and format_to_save:
-            path_to_save=file_to_save+'{0}.{1}'.format(page_id,format_to_save)
+            path_to_save=file_to_save+' {0}.{1}'.format(page_id,format_to_save)
             if dir_to_save:
                 path_to_save=dir_to_save+"/"+path_to_save
                 if not os.path.exists(dir_to_save):
@@ -844,7 +845,17 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
         if PDF_to_add:
             plt.savefig(PDF_to_add,format="pdf")
         if show:
-            plt.show()
+            if not plot_has_been_shown:
+                plot_has_been_shown=True
+                plt.ion()
+                plt.show()
+                plt.pause(0.2)
+                plt.pause(0.2)
+                plt.clf()
+            else:
+                plt.draw()
+                plt.pause(0.2)
+                plt.clf()
         else:
             plt.close()
                 
@@ -915,6 +926,7 @@ if __name__ == '__main__':
 #     conf.update()
     conf.set_fig("A4", "landscape")
     conf.update()
+    
     
     #docu({"plot":{"type","color_index","list"},"x_axis_label":{}},detailed=True)
     
