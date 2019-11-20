@@ -275,6 +275,7 @@ def prepare_plots(plot_data):
                       "rmax",
                       "grid",
                       "axis_off",
+                      "side_bar",
                       "color_bar",
                       "tight_layout"]
         for key in keys_in_data:
@@ -426,21 +427,37 @@ def prepare_plots(plot_data):
             
     return prepared_plots
 
-def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=False):
+def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=False, in_ax=None):
     #figs
-    
+    zeplt=plt
+    has_predef_axes=not(in_ax is None)
+    if has_predef_axes:
+        zeplt=in_ax
     for plot in prepared_plots:
         #this fig
         if not from_page:
-            fig=plt.figure(num=plot, figsize=conf.figsize, dpi=conf.dpi)#, facecolor, edgecolor, frameon, FigureClass)
+            if has_predef_axes:
+                fig=zeplt.get_figure()
+            else:
+                fig=zeplt.figure(num=plot, figsize=conf.figsize, dpi=conf.dpi)#, facecolor, edgecolor, frameon, FigureClass)
             if 'axes_projection' in prepared_plots[plot]:
                 if prepared_plots[plot]['axes_projection']=='polar':
-                    polax = fig.add_subplot(111, polar=True)
+                    fig.add_subplot(111, polar=True)
+#                    polax = fig.add_subplot(111, polar=True)
         #titles
         if "x_axis_label" in prepared_plots[plot]:
-            plt.xlabel(prepared_plots[plot]["x_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font)
+            if has_predef_axes:
+                zeplt.set_xlabel(prepared_plots[plot]["x_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font)
+                zeplt.set_xticks([])                     
+            else:
+                zeplt.xlabel(prepared_plots[plot]["x_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font)
         if "y_axis_label" in prepared_plots[plot]:
-            plt.ylabel(prepared_plots[plot]["y_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font)
+            if has_predef_axes:
+                zeplt.set_ylabel(prepared_plots[plot]["y_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font) 
+                zeplt.yaxis.set_label_position("right")
+                zeplt.yaxis.tick_right()
+            else:
+                zeplt.ylabel(prepared_plots[plot]["y_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font)
         if "title" in prepared_plots[plot]:
             fontdict={'fontsize': conf.title_font_size,'verticalalignment': 'baseline','horizontalalignment': "center"}
             if 'axes.titlepad' in rcParams.keys():
@@ -472,29 +489,29 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                     kawargs[key]=conf.plot_params[plot_func["func_name"]][key]
             
             if plot_func["func_name"]=="bar":
-                plt.bar(*plot_func["args"], **kawargs)
+                zeplt.bar(*plot_func["args"], **kawargs)
             
             if plot_func["func_name"]=="plot":
-                plt.plot(*plot_func["args"], **kawargs)
+                zeplt.plot(*plot_func["args"], **kawargs)
                 #plt.semilogx(*plot_func["args"], **kawargs)
             
             if plot_func["func_name"]=="polar":
                 plt.polar(*plot_func["args"], **kawargs)
             
             if plot_func["func_name"]=="semilogx":
-                plt.semilogx(*plot_func["args"], **kawargs)
+                zeplt.semilogx(*plot_func["args"], **kawargs)
             
             if plot_func["func_name"]=="semilogy":
-                plt.semilogy(*plot_func["args"], **kawargs)
+                zeplt.semilogy(*plot_func["args"], **kawargs)
             
             if plot_func["func_name"]=="loglog":
-                plt.loglog(*plot_func["args"], **kawargs)
+                zeplt.loglog(*plot_func["args"], **kawargs)
                 
             if plot_func["func_name"]=="annotate":
-                plt.annotate(*plot_func["args"], **kawargs)
+                zeplt.annotate(*plot_func["args"], **kawargs)
             
             if plot_func["func_name"]=="table":
-                the_table=plt.table(**kawargs)
+                the_table=zeplt.table(**kawargs)
                 
                 nb_cols=plot_func["args"]["nb_cols"]
                 nb_rows=plot_func["args"]["nb_rows"]
@@ -524,34 +541,35 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
 
             
             if plot_func["func_name"]=="text":
-                plt.text(*plot_func["args"], **kawargs)
+                zeplt.text(*plot_func["args"], **kawargs)
                 
             if plot_func["func_name"]=="vline":
-                plt.axvline(*plot_func["args"],**kawargs)
+                zeplt.axvline(*plot_func["args"],**kawargs)
                     
             if plot_func["func_name"]=="hline":
-                plt.axhline(*plot_func["args"],**kawargs)
+                zeplt.axhline(*plot_func["args"],**kawargs)
                     
             if plot_func["func_name"]=="vspan":
-                plt.axvspan(*plot_func["args"],**kawargs)
+                zeplt.axvspan(*plot_func["args"],**kawargs)
                     
             if plot_func["func_name"]=="hspan":
-                plt.axhspan(*plot_func["args"],**kawargs)
+                zeplt.axhspan(*plot_func["args"],**kawargs)
                     
             if plot_func["func_name"]=="scatter":
-                plt.scatter(*plot_func["args"], **kawargs)
+                zeplt.scatter(*plot_func["args"], **kawargs)
             
             if plot_func["func_name"]=="imshow":
-                plt.imshow(plot_func["args"], **kawargs)
+                zeplt.imshow(plot_func["args"], **kawargs)
 
                 
             my_box_plot={}
             if plot_func["func_name"]=="boxplot":
                 has_box_plots=True
-                my_box_plot[func_id]=plt.boxplot(plot_func["args"]["y_sets"], 
+                my_box_plot[func_id]=zeplt.boxplot(plot_func["args"]["y_sets"], 
                     positions = plot_func["args"]["x_values"],
                     sym='bx',
                     #whis = 1,#default 1.5
+                    whis='range',
                     widths=[plot_func["args"]["x_size"]]*len(plot_func["args"]["x_values"]), #(4.2, 4.2),
                     showfliers=False,
                     patch_artist = True)
@@ -600,7 +618,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                  
         #https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.tick_params.html#matplotlib.axes.Axes.tick_params
         #default tick params
-        plt.tick_params(
+        zeplt.tick_params(
             axis='x',          # changes apply to the x-axis
             which='both',      # both major and minor ticks are affected
             bottom='on',      # ticks along the bottom edge are off
@@ -608,7 +626,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             labelbottom='on',
             labelsize=conf.ticks_labels_font_size+extra_xtick_label_size) # labels along the bottom edge are off
             
-        plt.tick_params(
+        zeplt.tick_params(
             axis='y',          # changes apply to the y-axis
             which='both',      # both major and minor ticks are affected
             labelsize=conf.ticks_labels_font_size+extra_ytick_label_size) # labels along the bottom edge are off
@@ -618,7 +636,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             ticks=prepared_plots[plot]["x_ticks"]
             for key in ticks:
                 if "params" in ticks[key]:
-                    plt.tick_params(axis='x',which=key,**ticks[key]["params"])
+                    zeplt.tick_params(axis='x',which=key,**ticks[key]["params"])
                 if "range_step" in ticks[key]:
                     plt.gca().xaxis.set_ticks(np.arange(ticks[key]["from"],ticks[key]["to"],ticks[key]["range_step"]),minor=(key=="minor"))
                 elif "positions" in ticks[key]:
@@ -634,7 +652,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             ticks=prepared_plots[plot]["y_ticks"]
             for key in ticks:
                 if "params" in ticks[key]:
-                    plt.tick_params(axis='y',which=key,**ticks[key]["params"])
+                    zeplt.tick_params(axis='y',which=key,**ticks[key]["params"])
                 if "range_step" in ticks[key]:
                     plt.gca().yaxis.set_ticks(np.arange(ticks[key]["from"],ticks[key]["to"],ticks[key]["range_step"]),minor=(key=="minor"))
                 elif "positions" in ticks[key]:
@@ -682,25 +700,25 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             if "italic_legends" in prepared_plots[plot]["legends"] and prepared_plots[plot]["legends"]["italic_legends"]:
                 rcParams['font.style'] = 'italic'
                 if "manual_legends" in prepared_plots[plot]["legends"]:  
-                    leg=plt.legend(handles=prepared_plots[plot]["legends"]["manual_legends"],fontsize=conf.legend_labels_font_size,markerscale=conf.legend_markerscale, loc=leg_loc)        
+                    leg=zeplt.legend(handles=prepared_plots[plot]["legends"]["manual_legends"],fontsize=conf.legend_labels_font_size,markerscale=conf.legend_markerscale, loc=leg_loc)        
                 else:
                     myhandles, mylabels = plt.gca().get_legend_handles_labels()
                     #print(myhandles,mylabels)
                     if len(myhandles)!=0:
-                        leg=plt.legend(fontsize=conf.legend_labels_font_size,markerscale=conf.legend_markerscale, loc=leg_loc)            
+                        leg=zeplt.legend(fontsize=conf.legend_labels_font_size,markerscale=conf.legend_markerscale, loc=leg_loc)            
                 rcParams['font.style'] = 'normal'
                 if leg:
                     for legend_element in leg.legendHandles:
                         legend_element.set_linewidth(conf.legend_linewidth)   
             else:
                 if "manual_legends" in prepared_plots[plot]["legends"]:  
-                    leg=plt.legend(handles=prepared_plots[plot]["legends"]["manual_legends"],fontsize=conf.legend_labels_font_size,markerscale=conf.legend_markerscale, loc=leg_loc)
+                    leg=zeplt.legend(handles=prepared_plots[plot]["legends"]["manual_legends"],fontsize=conf.legend_labels_font_size,markerscale=conf.legend_markerscale, loc=leg_loc)
                 else:
                     myhandles, mylabels = plt.gca().get_legend_handles_labels()
                     #print(myhandles,mylabels)
                     if len(myhandles)!=0:
                         #myhandles[0].set_linewidth(28)
-                        leg=plt.legend(fontsize=conf.legend_labels_font_size,markerscale=conf.legend_markerscale, loc=leg_loc)   
+                        leg=zeplt.legend(fontsize=conf.legend_labels_font_size,markerscale=conf.legend_markerscale, loc=leg_loc)   
             
             if leg:   
                 leg.get_frame().set_linewidth(conf.legend_border_width)
@@ -709,14 +727,35 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             
         
         if "grid" in prepared_plots[plot]:
-            plt.grid(**prepared_plots[plot]["grid"])
+            zeplt.grid(**prepared_plots[plot]["grid"])
         
         if "axis_off" in prepared_plots[plot] and prepared_plots[plot]["axis_off"]:
             plt.gca().set_axis_off()
-            #plt.gca().xaxis.set_visible(False)
+            #zeplt.gca().xaxis.set_visible(False)
         
+            
+
         #MUST BE LAST BECAUSE NEW AXES ARE CREATED
-        if "color_bar" in prepared_plots[plot]:
+        if "side_bar" in prepared_plots[plot]:
+            #print(prepared_plots[plot]["color_bar"])
+            location="right"
+            if "location" in prepared_plots[plot]["side_bar"]:
+                location=prepared_plots[plot]["side_bar"]["location"]
+                
+                
+            divider = make_axes_locatable(plt.gca())
+#            ax1= zeplt.gca()
+            ax2 = divider.append_axes(location, "5%", pad="3%")
+            #zeplt.colorbar(im, cax=cax)
+            
+            sideplots=prepare_plots({0:prepared_plots[plot]["side_bar"]})
+            plot_indivs(sideplots,in_ax=ax2)
+
+
+                    
+                    
+        #MUST BE LAST BECAUSE NEW AXES ARE CREATED
+        elif "color_bar" in prepared_plots[plot]:
             #print(prepared_plots[plot]["color_bar"])
             location="right"
             if "location" in prepared_plots[plot]["color_bar"]:
@@ -740,8 +779,10 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 
             divider = make_axes_locatable(plt.gca())
             ax2 = divider.append_axes(location, "5%", pad="3%")
-            #plt.colorbar(im, cax=cax)
-        
+            #zeplt.colorbar(im, cax=cax)
+            
+            
+            
             # Set the colormap and norm to correspond to the data for which
             # the colorbar will be used.
             cmap = mpl_colors.ListedColormap(color_list)#['r', 'orange', 'b', 'g'])
@@ -761,7 +802,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             #Label
             if "label" in prepared_plots[plot]["color_bar"]:
                 cb2.set_label(prepared_plots[plot]["color_bar"]["label"])
-                        
+                    
 
         
         
@@ -786,10 +827,10 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
         if PDF_to_add:
             plt.savefig(PDF_to_add,format="pdf")
         if show:
-            plt.show()
+            zeplt.show()
         else:
-            if not from_page:
-                plt.close()
+            if not (from_page or has_predef_axes):
+                zeplt.close()
             
             
                 
@@ -833,7 +874,10 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
                     plot_indivs({0:dict(prepared_plots[plot])},show=False,file_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=True)
                 else:
                     plt.plot(np.log(range(1,10)))
-        plt.tight_layout()
+        try:
+            plt.tight_layout()
+        except:
+            pass
         
         if file_to_save and format_to_save:
             path_to_save=file_to_save+' {0}.{1}'.format(page_id,format_to_save)
@@ -963,7 +1007,15 @@ if __name__ == '__main__':
                   "title":"the title of the plot",
                   "legends":{"manual_legends":legend_example},
                   "grid":{"which":'major',"axis":"both"},
-                  "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
+                  "side_bar":{"values":{0:{"type":"scatter",'x_values':[0,-.25,.25,.5,0],'y_values':[1,3,7,15,25], 'color':["red","blue","green","orange","purple"], 's':90, "marker":'*'}}, 
+                              "xmin":-.5,
+                              "xmax":.5,
+                              "ymin":-1,          
+                              "ymax":27,
+                              "y_axis_label":"side bar plot label",
+                              "x_axis_label":"Winner",
+                              "title":"side title",
+                              }},
               21:{"values":{0:{"type":"semilogx","y_values":np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
                             1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
                             2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, 
@@ -1163,10 +1215,10 @@ if __name__ == '__main__':
                 "x_ticks":{"major":{"range_step":1, "from":0, "to":10}},
                 "axis_off":True}
 
-
     
     prepared_plots=prepare_plots(some_data)
     plot_indivs(prepared_plots,show=False,file_to_save=None,dir_to_save=None,PDF_to_add=None)
+
     pp1 = PdfPages('plottings.pdf')
     plot_pages(prepared_plots, nb_plots_hor=2, nb_plots_vert=2, show=False, file_to_save="plottings", format_to_save='eps', dir_to_save="test_plots_gen", PDF_to_add=pp1)
     pp1.close()
