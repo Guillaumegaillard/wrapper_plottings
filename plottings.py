@@ -433,6 +433,9 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
     has_predef_axes=not(in_ax is None)
     if has_predef_axes:
         zeplt=in_ax
+        zeplt.yaxis.tick_right()
+        zeplt.set_xticks([])                     
+        
     for plot in prepared_plots:
         #this fig
         if not from_page:
@@ -448,14 +451,12 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
         if "x_axis_label" in prepared_plots[plot]:
             if has_predef_axes:
                 zeplt.set_xlabel(prepared_plots[plot]["x_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font)
-                zeplt.set_xticks([])                     
             else:
                 zeplt.xlabel(prepared_plots[plot]["x_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font)
         if "y_axis_label" in prepared_plots[plot]:
             if has_predef_axes:
                 zeplt.set_ylabel(prepared_plots[plot]["y_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font) 
                 zeplt.yaxis.set_label_position("right")
-                zeplt.yaxis.tick_right()
             else:
                 zeplt.ylabel(prepared_plots[plot]["y_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font)
         if "title" in prepared_plots[plot]:
@@ -695,34 +696,41 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
         if "legends" in prepared_plots[plot]:
             leg=None
             leg_loc='best' #upper right
+            
+            legend_labels_font_size=prepared_plots[plot]["legends"]["legend_labels_font_size"] if "legend_labels_font_size"  in prepared_plots[plot]["legends"] else conf.legend_labels_font_size      
+            legend_markerscale=prepared_plots[plot]["legends"]["legend_markerscale"] if "legend_markerscale"  in prepared_plots[plot]["legends"] else conf.legend_markerscale
+            legend_linewidth=prepared_plots[plot]["legends"]["legend_linewidth"] if "legend_linewidth"  in prepared_plots[plot]["legends"] else conf.legend_linewidth
+            legend_border_width=prepared_plots[plot]["legends"]["legend_border_width"] if "legend_border_width"  in prepared_plots[plot]["legends"] else conf.legend_border_width
+            legend_border_color=prepared_plots[plot]["legends"]["legend_border_color"] if "legend_border_color"  in prepared_plots[plot]["legends"] else conf.legend_border_color
+                
             if "legend_loc"  in prepared_plots[plot]["legends"]:
                 leg_loc=prepared_plots[plot]["legends"]["legend_loc"]
             if "italic_legends" in prepared_plots[plot]["legends"] and prepared_plots[plot]["legends"]["italic_legends"]:
                 rcParams['font.style'] = 'italic'
                 if "manual_legends" in prepared_plots[plot]["legends"]:  
-                    leg=zeplt.legend(handles=prepared_plots[plot]["legends"]["manual_legends"],fontsize=conf.legend_labels_font_size,markerscale=conf.legend_markerscale, loc=leg_loc)        
+                    leg=zeplt.legend(handles=prepared_plots[plot]["legends"]["manual_legends"],fontsize=legend_labels_font_size,markerscale=legend_markerscale, loc=leg_loc)        
                 else:
                     myhandles, mylabels = plt.gca().get_legend_handles_labels()
                     #print(myhandles,mylabels)
                     if len(myhandles)!=0:
-                        leg=zeplt.legend(fontsize=conf.legend_labels_font_size,markerscale=conf.legend_markerscale, loc=leg_loc)            
+                        leg=zeplt.legend(fontsize=legend_labels_font_size,markerscale=legend_markerscale, loc=leg_loc)            
                 rcParams['font.style'] = 'normal'
                 if leg:
                     for legend_element in leg.legendHandles:
-                        legend_element.set_linewidth(conf.legend_linewidth)   
+                        legend_element.set_linewidth(legend_linewidth)   
             else:
                 if "manual_legends" in prepared_plots[plot]["legends"]:  
-                    leg=zeplt.legend(handles=prepared_plots[plot]["legends"]["manual_legends"],fontsize=conf.legend_labels_font_size,markerscale=conf.legend_markerscale, loc=leg_loc)
+                    leg=zeplt.legend(handles=prepared_plots[plot]["legends"]["manual_legends"],fontsize=legend_labels_font_size,markerscale=legend_markerscale, loc=leg_loc)
                 else:
                     myhandles, mylabels = plt.gca().get_legend_handles_labels()
                     #print(myhandles,mylabels)
                     if len(myhandles)!=0:
                         #myhandles[0].set_linewidth(28)
-                        leg=zeplt.legend(fontsize=conf.legend_labels_font_size,markerscale=conf.legend_markerscale, loc=leg_loc)   
+                        leg=zeplt.legend(fontsize=legend_labels_font_size,markerscale=legend_markerscale, loc=leg_loc)   
             
             if leg:   
-                leg.get_frame().set_linewidth(conf.legend_border_width)
-                leg.get_frame().set_edgecolor(conf.legend_border_color)
+                leg.get_frame().set_linewidth(legend_border_width)
+                leg.get_frame().set_edgecolor(legend_border_color)
             #prepared_plots[plot]["plot_legends"]
             
         
@@ -1215,6 +1223,14 @@ if __name__ == '__main__':
                 "x_ticks":{"major":{"range_step":1, "from":0, "to":10}},
                 "axis_off":True}
 
+    len_data=len(some_data)
+    some_data_keys=list(some_data.keys())
+#    for plot_id in some_data_keys:
+##        for val_id in some_data[plot_id]["values"]:
+##            some_data[10*plot_id+val_id+len_data]=dict(some_data[plot_id])
+##            some_data[10*plot_id+val_id+len_data]["side_bar"]=dict(some_data[plot_id])
+#        some_data[10*plot_id+len_data]=dict(some_data[plot_id])
+#        some_data[10*plot_id+len_data]["side_bar"]=dict(some_data[plot_id])
     
     prepared_plots=prepare_plots(some_data)
     plot_indivs(prepared_plots,show=False,file_to_save=None,dir_to_save=None,PDF_to_add=None)
