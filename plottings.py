@@ -10,9 +10,12 @@ from matplotlib import rcParams
 import matplotlib.colors as mpl_colors
 import matplotlib.colorbar as mpl_colorbar
 import matplotlib.lines as mpl_lines
+import matplotlib.spines as mpl_spines
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib.axes as maxes
 
-
+import io
+from PIL import Image
 
 
 #from wrapper_plottings 
@@ -27,7 +30,7 @@ plot_has_been_shown=False
 
 plot_params={}
 function_params={}
-plot_types=["plot","polar","semilogx","semilogy","loglog","scatter","boxplot","vline","hline","vspan","hspan","annotate","imshow","bar","text","table"]
+plot_types=["plot","polar","semilogx","semilogy","loglog","scatter","boxplot","vline","hline","vspan","hspan","annotate","imshow","pcolormesh","bar","text","table"]
 args_params={}
 details={"plot_params":{},"func_params":{}}
 for plot_type in plot_types:
@@ -275,6 +278,7 @@ def prepare_plots(plot_data):
                       "rmax",
                       "grid",
                       "axis_off",
+                      "zoom_bbox",
                       "side_bar",
                       "color_bar",
                       "tight_layout"]
@@ -361,7 +365,20 @@ def prepare_plots(plot_data):
             
             if ptype=="imshow":   
                 plot_func["args"]=plot_data[plot]["values"][cloud]["matrix_colors"]
-                prepared_params+=["matrix_colors"]                
+                prepared_params+=["matrix_colors"]
+
+            if ptype=="pcolormesh":   
+                plot_func["args"]=plot_data[plot]["values"][cloud]["array"]
+                plot_func["cmap_list"]=plot_data[plot]["values"][cloud]["cmap_list"]
+                plot_func["xmin"]=plot_data[plot]["values"][cloud]["xmin"]
+                plot_func["xmax"]=plot_data[plot]["values"][cloud]["xmax"]
+                plot_func["ymin"]=plot_data[plot]["values"][cloud]["ymin"]
+                plot_func["ymax"]=plot_data[plot]["values"][cloud]["ymax"]
+                plot_func["vmin"]=plot_data[plot]["values"][cloud]["vmin"]
+                plot_func["vmax"]=plot_data[plot]["values"][cloud]["vmax"]
+                prepared_params+=["array"]                
+
+                         
             
             if ptype=="bar":   
                 plot_func["args"]=[plot_data[plot]["values"][cloud]["left"],
@@ -446,7 +463,6 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             if 'axes_projection' in prepared_plots[plot]:
                 if prepared_plots[plot]['axes_projection']=='polar':
                     fig.add_subplot(111, polar=True)
-#                    polax = fig.add_subplot(111, polar=True)
         #titles
         if "x_axis_label" in prepared_plots[plot]:
             if has_predef_axes:
@@ -561,6 +577,35 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             
             if plot_func["func_name"]=="imshow":
                 zeplt.imshow(plot_func["args"], **kawargs)
+
+            if plot_func["func_name"]=="pcolormesh":
+                xmin=plot_func["xmin"]
+                xmax=plot_func["xmax"]
+                ymin=plot_func["ymin"]
+                ymax=plot_func["ymax"]
+                vmin=plot_func["vmin"]
+                vmax=plot_func["vmax"]
+                xstart=np.pi/180*xmin
+                xstop=np.pi/180*xmax
+                xrange=xmax-xmin
+                ystart=np.pi/180*ymin
+                ystop=np.pi/180*ymax
+                yrange=ymax-ymin
+                lon = np.linspace(xstart, xstop, xrange+1)
+                lat = np.linspace(ystart, ystop, yrange+1)
+                # lon = np.linspace(-np.pi, np.pi,317)
+                # lat = np.linspace(-np.pi/6., np.pi/6.,63)
+                Lon,Lat = np.meshgrid(lon,lat)
+                print(plot_func["cmap_list"])
+                color_list=plot_func["cmap_list"]
+                zeplt.pcolormesh(
+                    Lon,
+                    Lat,
+                    plot_func["args"],
+                    cmap=mpl_colors.ListedColormap(color_list),
+                    vmin=vmin,vmax=vmax,
+                    rasterized=True)
+                    #edgecolor='none')#cmap=plt.cm.jet)
 
                 
             my_box_plot={}
@@ -682,6 +727,18 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 plt.gca().set_thetamax(360)
                 plt.gca().set_rmax(60)
                 plt.gca().set_rmin(0)
+            if prepared_plots[plot]['axes_projection']=='mollweide':
+                plt.tick_params(
+                    axis='both',          # changes apply to the x-axis
+                    which='both',      # both major and minor ticks are affected
+                    bottom=False,      # ticks along the bottom edge are off
+                    top=False,         # ticks along the top edge are off
+                    left=False,         # ticks along the top edge are off
+                    right=False,         # ticks along the top edge are off
+                    # labelbottom=False # labels along the bottom edge are off
+                    )
+
+
         if "theta_min" in prepared_plots[plot]:
             plt.gca().set_thetamin(prepared_plots[plot]["theta_min"]/np.pi*180)
         if "theta_max" in prepared_plots[plot]:
@@ -740,8 +797,54 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
         if "axis_off" in prepared_plots[plot] and prepared_plots[plot]["axis_off"]:
             plt.gca().set_axis_off()
             #zeplt.gca().xaxis.set_visible(False)
-        
+
+        if "zoom_bbox" in prepared_plots[plot]:
+            # plt.tight_layout()
+            plt.gca().xaxis.set_ticklabels([]) 
+            extent = plt.gca().get_window_extent().transformed(plt.gcf().dpi_scale_trans.inverted())
+            print(extent)
+            delta_x=extent.x1-extent.x0
+            delta_y=extent.y1-extent.y0
+            extent.x0=extent.x0-0.2*delta_x/3
+            extent.x1=extent.x1+0.05*delta_x/3
+            ##45 deg
+            # extent.y0=extent.y0+0.9*delta_y/3
+            # extent.y1=extent.y1-0.9*delta_y/3
+            ##30 deg with 2 hori
+            extent.y0=extent.y0+1.05*delta_y/3
+            extent.y1=extent.y1-1.05*delta_y/3
+
+            # plt.gca().figure.savefig('tototu.png',format="png", dpi=2000, bbox_inches=extent)
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png', dpi=3300, bbox_inches=extent)#3200 = 2 fig
+            buf.seek(0)
+
             
+            current_ax=plt.gca()
+            divider = make_axes_locatable(plt.gca())
+            current_ax.set_visible(False)
+
+            ax2 = divider.append_axes("left", "100%", pad="0%",axes_class=maxes.Axes)
+            viewbox_cur= plt.gca().viewLim
+            current_ax.remove()
+            im = plt.imread(buf)
+            buf.close()
+
+            implot = plt.imshow(im, extent=[-2.0,2,-2,2.0])
+
+            if "x_axis_label" in prepared_plots[plot]:
+                fontdict={'fontsize': conf.title_font_size,'verticalalignment': 'baseline','horizontalalignment': "center"}        
+                plt.xlabel(prepared_plots[plot]["x_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font)
+
+            ax2.yaxis.set_ticklabels([]) 
+            ax2.xaxis.set_ticklabels([]) 
+            ax2.yaxis.set_ticks([]) 
+            ax2.xaxis.set_ticks([]) 
+            
+            for child in ax2.get_children():
+                if isinstance(child, mpl_spines.Spine):
+                    # child.set_color('#dddddd')  #grey    
+                    child.set_color('white')      
 
         #MUST BE LAST BECAUSE NEW AXES ARE CREATED
         if "side_bar" in prepared_plots[plot]:
@@ -753,14 +856,18 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 
             divider = make_axes_locatable(plt.gca())
 #            ax1= zeplt.gca()
-            ax2 = divider.append_axes(location, "5%", pad="3%")
+            # ax2 = divider.new_vertical("5%", pad="3%",axes_class=maxes.Axes)
+
+            ax2 = divider.append_axes(location, "5%", pad="3%",axes_class=maxes.Axes)
+            # ax2 = divider.append_axes(location, "5%", pad="3%")
+                # def append_axes(self, position, size, pad=None, add_to_figure=True,
+                #     **kwargs):
+
             #zeplt.colorbar(im, cax=cax)
             
             sideplots=prepare_plots({0:prepared_plots[plot]["side_bar"]})
             plot_indivs(sideplots,in_ax=ax2)
 
-
-                    
                     
         #MUST BE LAST BECAUSE NEW AXES ARE CREATED
         elif "color_bar" in prepared_plots[plot]:
@@ -786,7 +893,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             color_bounds=np.trunc(color_bounds*decade)/decade
                 
             divider = make_axes_locatable(plt.gca())
-            ax2 = divider.append_axes(location, "5%", pad="3%")
+            ax2 = divider.append_axes(location, "5%", pad="3%",axes_class=maxes.Axes)
             #zeplt.colorbar(im, cax=cax)
             
             
@@ -810,6 +917,10 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             #Label
             if "label" in prepared_plots[plot]["color_bar"]:
                 cb2.set_label(prepared_plots[plot]["color_bar"]["label"])
+            if "xlabel" in prepared_plots[plot]["color_bar"]:                
+                cb2.ax.set_xlabel(prepared_plots[plot]["color_bar"]["xlabel"])
+            if "title" in prepared_plots[plot]["color_bar"]:                
+                cb2.ax.set_title(prepared_plots[plot]["color_bar"]["title"])
                     
 
         
@@ -871,12 +982,13 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
             if page>page_id:
                 break
             if page==page_id:
-                polar=False
                 if 'axes_projection' in prepared_plots[plot]:
                     if prepared_plots[plot]['axes_projection']=='polar':
-                        polar=True
-                        
-                axes[plot]=plt.subplot(nb_plots_vert,nb_plots_hor,plot_id+1,polar=polar)
+                        axes[plot]=plt.subplot(nb_plots_vert,nb_plots_hor,plot_id+1,polar=True)
+                    elif prepared_plots[plot]['axes_projection']=='mollweide':
+                        axes[plot]=plt.subplot(nb_plots_vert,nb_plots_hor,plot_id+1,projection="mollweide")
+                else:
+                    axes[plot]=plt.subplot(nb_plots_vert,nb_plots_hor,plot_id+1,polar=False)
                 
                 if plot in prepared_plots:
                     plot_indivs({0:dict(prepared_plots[plot])},show=False,file_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=True)

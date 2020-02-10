@@ -85,6 +85,7 @@ plot_params={"plot":{"linewidth":general_plots_linewidth},
              "hspan":{"alpha":0.5},
              "vspan":{"alpha":0.5},
              "imshow":{"interpolation":'nearest',"aspect":'auto', "origin":'lower'},
+             "pcolormesh":{},
              "text":{"fontdict":{'fontname':used_font['fontname'],"fontsize":ticks_labels_font_size}},
              "annotate":{"size":ticks_labels_font_size},
              "table":{'loc':'center',"cellLoc":'center', "rowLoc":'center',"colLoc":'center','fontsize':ticks_labels_font_size}}                
@@ -237,6 +238,7 @@ def update(subp=1):   #FIGURE
                  "hspan":{"alpha":0.5},
                  "vspan":{"alpha":0.5},
                  "imshow":{"interpolation":'nearest',"aspect":'auto', "origin":'lower'},
+                 "pcolormesh":{},
                  "text":{"fontdict":{'fontname':used_font['fontname'],"fontsize":ticks_labels_font_size}},
                  "annotate":{"size":ticks_labels_font_size},
                  "table":{'loc':'center',"cellLoc":'center', "rowLoc":'center',"colLoc":'center','fontsize':ticks_labels_font_size}}                
