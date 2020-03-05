@@ -928,7 +928,6 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
         if not from_page and "tight_layout" in prepared_plots[plot] and prepared_plots[plot]["tight_layout"]:
             plt.tight_layout()
 
-        
         if file_to_save and format_to_save:
             path_to_save=file_to_save
             if dir_to_save:
@@ -994,11 +993,23 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
                     plot_indivs({0:dict(prepared_plots[plot])},show=False,file_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=True)
                 else:
                     plt.plot(np.log(range(1,10)))
-        try:
-            plt.tight_layout()
-        except:
-            pass
-        
+            
+                try:
+                    if 'axes_projection' in prepared_plots[plot]: ##labels seem not to be considered by tight_layout in that case
+                        plt.tight_layout(w_pad=1.5, h_pad=1.5)
+                    else:
+                        plt.tight_layout()
+                except:
+                    print("Tight Layout failed for page {0} plot {1}".format(page_id+1,plot_id))
+
+                    # error:
+                    # File "/home/guigui/anaconda3/lib/python3.7/site-packages/matplotlib/tight_layout.py", line 255, in get_subplotspec_list
+                    # axes_or_locator ====> <mpl_toolkits.axes_grid1.axes_divider.AxesLocator object at 0x7fb2deca7400>
+                    # subplotspec = axes_or_locator.get_subplotspec() =======> None
+                    # subplotspec = subplotspec.get_topmost_subplotspec()
+                    # AttributeError: 'NoneType' object has no attribute 'get_topmost_subplotspec'                    
+
+            
         if file_to_save and format_to_save:
             path_to_save=file_to_save+' {0}.{1}'.format(page_id,format_to_save)
             if dir_to_save:
