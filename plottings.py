@@ -1022,7 +1022,7 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
                 path_to_save=dir_to_save+"/"+path_to_save
                 if not os.path.exists(dir_to_save):
                     os.makedirs(dir_to_save)
-            plt.savefig(path_to_save,format=format_to_save)
+            plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi)
         if PDF_to_add:
             plt.savefig(PDF_to_add,format="pdf", dpi=user_defined_dpi)
         if show:
