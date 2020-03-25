@@ -92,6 +92,10 @@ plot_params={"plot":{"linewidth":general_plots_linewidth},
 
 
 
+def set_figsize(user_defined_fixed_size):   #Fixed figure setting
+    global figsize
+    figsize=user_defined_fixed_size
+
 def update(subp=1):   #FIGURE
     global figsize,dpi,axes_labels_font_size,legend_labels_font_size,ticks_labels_font_size,title_font_size,title_and_axes_labelpad
     global legend_markerscale,legend_border_width,legend_border_color,legend_linewidth,hfont,afont,used_font,colors,colorbar_colors

@@ -204,7 +204,7 @@ details["func_params"]["imshow"]["origin"]="""Matrix origin position. Defaults i
 function_params["bar"]="""Add a (vertical) bar."""
 args_params["bar"]["legend"]="""The legend associated with the plot function."""
 args_params["bar"]["type"]="""The type of plot function: 'bar'."""
-args_params["bar"]["left"]="""The left position of the bar."""
+args_params["bar"]["center"]="""The center position of the bar."""
 args_params["bar"]["height"]="""The y height of the bar"""
 args_params["bar"]["width"]="""The x width of the bar"""
 args_params["bar"]["bottom"]="""The bottom position of the bar, default 0."""
@@ -272,6 +272,7 @@ def prepare_plots(plot_data):
                       "ymin",
                       "ymax",
                       "axes_projection",
+                      "no_padding",
                       "theta_min",
                       "theta_max",
                       "rmin",
@@ -381,7 +382,7 @@ def prepare_plots(plot_data):
                          
             
             if ptype=="bar":   
-                plot_func["args"]=[plot_data[plot]["values"][cloud]["left"],
+                plot_func["args"]=[plot_data[plot]["values"][cloud]["center"],
                                    plot_data[plot]["values"][cloud]["height"],
                                    plot_data[plot]["values"][cloud]["width"],
                                    plot_data[plot]["values"][cloud]["bottom"] if "bottom" in plot_data[plot]["values"][cloud] else 0]
@@ -389,7 +390,7 @@ def prepare_plots(plot_data):
 #                                    "height":plot_data[plot]["values"][cloud]["height"],
 #                                    "width":plot_data[plot]["values"][cloud]["width"],
 #                                    "bottom":plot_data[plot]["values"][cloud]["bottom"] if "bottom" in plot_data[plot]["values"][cloud] else 0}
-                prepared_params+=["left","height","width","bottom"]
+                prepared_params+=["center","height","width","bottom"]
                 
             if ptype=="text":
                 plot_func["args"]=[plot_data[plot]["values"][cloud]["x"],
@@ -816,7 +817,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
 
             # plt.gca().figure.savefig('tototu.png',format="png", dpi=2000, bbox_inches=extent)
             buf = io.BytesIO()
-            plt.savefig(buf, format='png', dpi=3300, bbox_inches=extent)#3200 = 2 fig
+            plt.savefig(buf, format='png', dpi=min(2000,10000/(delta_x*delta_y)**(1/2)) , bbox_inches=extent)# limit to reasonable dpi
             buf.seek(0)
 
             
@@ -953,14 +954,17 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             
                 
             
-def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None):
+def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, user_defines_size=False,user_defined_size=conf.figsize,user_defined_dpi=conf.dpi):
     global plot_has_been_shown
     
     if show:
         conf.set_fig("plot_show","landscape",nb_column_width=1)
         
     conf.update(max(nb_plots_vert,nb_plots_hor))
-        
+
+    if user_defines_size:
+        conf.set_figsize(user_defined_size)
+
     axes={}
     nb_pages=int(len(prepared_plots)/(nb_plots_vert*nb_plots_hor))
     if len(prepared_plots)%(nb_plots_vert*nb_plots_hor)!=0:
@@ -997,6 +1001,8 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
                 try:
                     if 'axes_projection' in prepared_plots[plot]: ##labels seem not to be considered by tight_layout in that case
                         plt.tight_layout(w_pad=1.5, h_pad=1.5)
+                    elif 'no_padding' in prepared_plots[plot]:
+                        plt.tight_layout(w_pad=0, h_pad=0, pad=0.)
                     else:
                         plt.tight_layout()
                 except:
@@ -1018,7 +1024,7 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
                     os.makedirs(dir_to_save)
             plt.savefig(path_to_save,format=format_to_save)
         if PDF_to_add:
-            plt.savefig(PDF_to_add,format="pdf")
+            plt.savefig(PDF_to_add,format="pdf", dpi=user_defined_dpi)
         if show:
             if not plot_has_been_shown:
                 plot_has_been_shown=True
@@ -1196,7 +1202,8 @@ if __name__ == '__main__':
                             3:{"type":"imshow","matrix_colors":[([0.3, 0.4, 1], [0.0, 0.0, 0.0]),([0.3, 1, 1], [0.3, 0.3, 1])]},
                             4:{"type":"hline","y_pos":4.4, 'x_axis_prop_range':[0.1,0.6], 'color_index':0,"color":"red", "linewidth":4., "solid_capstyle":'round'},
                             5:{"type":"hspan","y_min":1.7, "y_max":3.7, 'x_axis_prop_range':[0.1,0.6]},
-                            6:{"type":"bar","left":6.7, 'height':2., 'width':1.5, "bottom":1., "color":"red", "linewidth":4.,"edgecolor":'none'},
+                            6:{"type":"bar","center":6.7, 'height':2., 'width':1.5, "bottom":1., "color":"red", "linewidth":4.,"edgecolor":'none'},
+                            7:{"type":"bar","center":4.75, 'height':1., 'width':1, "bottom":0.25, "color":"green", "linewidth":0.02,"edgecolor":'green',"facecolor":'none'},
                             },
                   "colors":["red","green","blue"],
                   "plot_types":"example",
