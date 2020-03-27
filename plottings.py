@@ -13,6 +13,8 @@ import matplotlib.lines as mpl_lines
 import matplotlib.spines as mpl_spines
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.axes as maxes
+from matplotlib.ticker import ScalarFormatter
+
 
 import io
 from PIL import Image
@@ -445,7 +447,7 @@ def prepare_plots(plot_data):
             
     return prepared_plots
 
-def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=False, in_ax=None):
+def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=False, in_ax=None,user_defined_dpi=conf.dpi):
     #figs
     zeplt=plt
     has_predef_axes=not(in_ax is None)
@@ -688,7 +690,15 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                     plt.gca().xaxis.set_ticks(np.arange(ticks[key]["from"],ticks[key]["to"],ticks[key]["range_step"]),minor=(key=="minor"))
                 elif "positions" in ticks[key]:
                     plt.gca().xaxis.set_ticks(ticks[key]["positions"],minor=(key=="minor"))
-                
+
+                if "scalar" in ticks[key]:
+                    mike=ScalarFormatter()
+                    mike.set_powerlimits((-3, 4))
+                    if key=="minor":
+                        plt.gca().xaxis.set_minor_formatter(mike)
+                    else:
+                        plt.gca().xaxis.set_major_formatter(mike)
+
                 if "labels" in ticks[key]:
                     plt.gca().xaxis.set_ticklabels(ticks[key]["labels"],minor=(key=="minor"))
                 else:
@@ -705,6 +715,14 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 elif "positions" in ticks[key]:
                     plt.gca().yaxis.set_ticks(ticks[key]["positions"],minor=(key=="minor"))
                 
+                if "scalar" in ticks[key]:
+                    mike=ScalarFormatter()
+                    mike.set_powerlimits((-3, 4))
+                    if key=="minor":
+                        plt.gca().yaxis.set_minor_formatter(mike)
+                    else:
+                        plt.gca().yaxis.set_major_formatter(mike)
+
                 if "labels" in ticks[key]:
                     plt.gca().yaxis.set_ticklabels(ticks[key]["labels"],minor=(key=="minor"))
                     
@@ -935,16 +953,16 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 path_to_save=dir_to_save+"/"+path_to_save
                 if not os.path.exists(dir_to_save):
                     os.makedirs(dir_to_save)
-            plt.savefig(path_to_save,format=format_to_save)
+            plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi)
         elif (not from_page) and "file_to_save" in prepared_plots[plot] and "format_to_save" in prepared_plots[plot]:
             path_to_save=prepared_plots[plot]["file_to_save"]
             if "dir_to_save" in prepared_plots[plot]:
                 path_to_save=prepared_plots[plot]["dir_to_save"]+"/"+path_to_save
                 if not os.path.exists(prepared_plots[plot]["dir_to_save"]):
                     os.makedirs(prepared_plots[plot]["dir_to_save"])
-            plt.savefig(path_to_save,format=prepared_plots[plot]["format_to_save"])
+            plt.savefig(path_to_save,format=prepared_plots[plot]["format_to_save"], dpi=user_defined_dpi)
         if PDF_to_add:
-            plt.savefig(PDF_to_add,format="pdf")
+            plt.savefig(PDF_to_add,format="pdf", dpi=user_defined_dpi)
         if show:
             zeplt.show()
         else:
@@ -1131,6 +1149,32 @@ if __name__ == '__main__':
                   "legends":{"manual_legends":legend_example},
                   "grid":{"which":'major',"axis":"both"},
                   "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
+              42:{"values":{0:{"type":"plot","y_values":4000*(-3.2-.46*np.log(.00001+np.sinc((0.0003*np.arange(1,10000))**6)**2)), 'color_index':0, 'legend':'plot 0'},
+                            1:{"type":"plot","y_values":10000*np.sin(np.linspace(1,10000,9)),"x_values":range(10000,1000,-1000),"linestyle":'--'},
+                            },
+                  "y_ticks":{"major":{"scalar":True}},    
+                  "xmin":3000,
+                  "ymin":-10200,                        
+                  "colors":["red","green","blue"],
+                  "plot_types":"example",
+                  "file_to_save":"example1.tif",
+                  "format_to_save":"tif", ##png, pdf, ps, eps or svg.
+                  "dir_to_save":"test_plots_gen",
+                  "x_axis_label":"x label",
+                  "y_axis_label":"y label",
+                  "tight_layout":True,
+                  "title":"long axes - scalar y",
+                  "legends":{"manual_legends":legend_example},
+                  "grid":{"which":'major',"axis":"both"},
+                  "side_bar":{"values":{0:{"type":"scatter",'x_values':[0,-.25,.25,.5,0],'y_values':[1,3,7,15,25], 'color':["red","blue","green","orange","purple"], 's':90, "marker":'*'}}, 
+                              "xmin":-.5,
+                              "xmax":.5,
+                              "ymin":-1,          
+                              "ymax":27,
+                              "y_axis_label":"side bar plot label",
+                              "x_axis_label":"Val",
+                              "title":"side title",
+                              }},
               20:{"values":{0:{"type":"plot","y_values":np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
                             1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
                             2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, 
@@ -1142,18 +1186,10 @@ if __name__ == '__main__':
                   "dir_to_save":"test_plots_gen",
                   "y_axis_label":"y label",
                   "x_axis_label":"th x lbel",
-                  "title":"the title of the plot",
+                  "title":"plot",
                   "legends":{"manual_legends":legend_example},
                   "grid":{"which":'major',"axis":"both"},
-                  "side_bar":{"values":{0:{"type":"scatter",'x_values':[0,-.25,.25,.5,0],'y_values':[1,3,7,15,25], 'color':["red","blue","green","orange","purple"], 's':90, "marker":'*'}}, 
-                              "xmin":-.5,
-                              "xmax":.5,
-                              "ymin":-1,          
-                              "ymax":27,
-                              "y_axis_label":"side bar plot label",
-                              "x_axis_label":"Winner",
-                              "title":"side title",
-                              }},
+                  "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
               21:{"values":{0:{"type":"semilogx","y_values":np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
                             1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
                             2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, 
@@ -1364,7 +1400,7 @@ if __name__ == '__main__':
 #        some_data[10*plot_id+len_data]["side_bar"]=dict(some_data[plot_id])
     
     prepared_plots=prepare_plots(some_data)
-    plot_indivs(prepared_plots,show=False,file_to_save=None,dir_to_save=None,PDF_to_add=None)
+    plot_indivs(prepared_plots,show=False,file_to_save=None,dir_to_save=None,PDF_to_add=None,user_defined_dpi=100)
 
     pp1 = PdfPages('plottings.pdf')
     plot_pages(prepared_plots, nb_plots_hor=2, nb_plots_vert=2, show=False, file_to_save="plottings", format_to_save='eps', dir_to_save="test_plots_gen", PDF_to_add=pp1)
