@@ -1039,7 +1039,8 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
                 plt.clf()
         else:
             plt.close()
-                
+        
+        axes={}        
         
 #         try:
 #             plt.savefig("totototo{0}.png".format(page_id))
