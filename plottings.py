@@ -15,7 +15,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.axes as maxes
 from matplotlib.ticker import ScalarFormatter
 
-
 import io
 from PIL import Image
 
@@ -673,11 +672,13 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             bottom='on',      # ticks along the bottom edge are off
             top='off',         # ticks along the top edge are off
             labelbottom='on',
+            # pad=conf.title_and_axes_labelpad, #label pad
             labelsize=conf.ticks_labels_font_size+extra_xtick_label_size) # labels along the bottom edge are off
             
         zeplt.tick_params(
             axis='y',          # changes apply to the y-axis
             which='both',      # both major and minor ticks are affected
+            # pad=conf.title_and_axes_labelpad,
             labelsize=conf.ticks_labels_font_size+extra_ytick_label_size) # labels along the bottom edge are off
         
         #tick and labels
@@ -746,6 +747,13 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 plt.gca().set_thetamax(360)
                 plt.gca().set_rmax(60)
                 plt.gca().set_rmin(0)
+                
+                plt.tick_params(
+                    axis='both',          # changes apply to the y-axis
+                    which='both',      # both major and minor ticks are affected
+                    pad=conf.title_and_axes_labelpad,
+                )
+
             if prepared_plots[plot]['axes_projection']=='mollweide':
                 plt.tick_params(
                     axis='both',          # changes apply to the x-axis
@@ -818,38 +826,58 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             #zeplt.gca().xaxis.set_visible(False)
 
         if "zoom_bbox" in prepared_plots[plot]:
-            # plt.tight_layout()
+
+            propx0,propx1,propy0,propy1=prepared_plots[plot]["zoom_bbox"]
+
             plt.gca().xaxis.set_ticklabels([]) 
+            plt.gca().xaxis.label.set_visible(False)
+
+            r = plt.gcf().canvas.get_renderer()#.get_renderer()
+            mike=plt.gca().get_tightbbox(r)#,bbox_extra_artists=[])
             extent = plt.gca().get_window_extent().transformed(plt.gcf().dpi_scale_trans.inverted())
-            print(extent)
+
+            oriposi=plt.gca().get_position(original=True)
             delta_x=extent.x1-extent.x0
             delta_y=extent.y1-extent.y0
-            extent.x0=extent.x0-0.2*delta_x/3
-            extent.x1=extent.x1+0.05*delta_x/3
-            ##45 deg
-            # extent.y0=extent.y0+0.9*delta_y/3
-            # extent.y1=extent.y1-0.9*delta_y/3
-            ##30 deg with 2 hori
-            extent.y0=extent.y0+1.05*delta_y/3
-            extent.y1=extent.y1-1.05*delta_y/3
+
+            extent.x0=extent.x0+propx0*delta_x
+            extent.x1=extent.x1+propx1*delta_x
+            extent.y0=extent.y0+propy0*delta_y
+            extent.y1=extent.y1+propy1*delta_y
 
             # plt.gca().figure.savefig('tototu.png',format="png", dpi=2000, bbox_inches=extent)
             buf = io.BytesIO()
             plt.savefig(buf, format='png', dpi=min(2000,10000/(delta_x*delta_y)**(1/2)) , bbox_inches=extent)# limit to reasonable dpi
             buf.seek(0)
 
-            
             current_ax=plt.gca()
-            divider = make_axes_locatable(plt.gca())
-            current_ax.set_visible(False)
 
-            ax2 = divider.append_axes("left", "100%", pad="0%",axes_class=maxes.Axes)
-            viewbox_cur= plt.gca().viewLim
+            inax_x_label_offset=0
+            inax_y_label_offset=0
+            inax_w_label_offset=-0.02 # potential side/color bar
+            inax_h_label_offset=0
+            if 'axes_projection' in prepared_plots[plot]:
+                if prepared_plots[plot]['axes_projection']=='mollweide':
+                    inax_x_label_offset=0
+                    inax_y_label_offset=0.02
+                    inax_w_label_offset=-0.02
+                    inax_h_label_offset=0
+
+            # rect = (0.01, 0.01, .98, .98)
+            # rect = (0.01, 0.12, .98, .86)
+            rect=(oriposi.x0+inax_x_label_offset,oriposi.y0+inax_y_label_offset,oriposi.x1-oriposi.x0+inax_w_label_offset,oriposi.y1-oriposi.y0)
+
+            ax2 = plt.Axes(plt.gcf(), rect)
+            plt.gcf().add_axes(ax2)
+
+            # ax.set_axis_off()
+            # current_ax.set_visible(False)
             current_ax.remove()
+
             im = plt.imread(buf)
             buf.close()
 
-            implot = plt.imshow(im, extent=[-2.0,2,-2,2.0])
+            implot = ax2.imshow(im,**({"origin":"upper", "aspect":"auto", "interpolation":'spline36'}))
 
             if "x_axis_label" in prepared_plots[plot]:
                 fontdict={'fontsize': conf.title_font_size,'verticalalignment': 'baseline','horizontalalignment': "center"}        
@@ -864,6 +892,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 if isinstance(child, mpl_spines.Spine):
                     # child.set_color('#dddddd')  #grey    
                     child.set_color('white')      
+
 
         #MUST BE LAST BECAUSE NEW AXES ARE CREATED
         if "side_bar" in prepared_plots[plot]:
@@ -993,7 +1022,7 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
     for page_id in range(nb_pages):
         print("setting page {0}/{1}...".format(page_id+1,nb_pages))
         
-        plt.figure(num=page_id, figsize=conf.figsize, dpi=conf.dpi)
+        plt.figure(num=page_id, figsize=conf.figsize, dpi=user_defined_dpi)
         
         for plot_index in range(len(sppk)):
             plot=sppk[plot_index]
@@ -1017,12 +1046,13 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
                     plt.plot(np.log(range(1,10)))
             
                 try:
-                    if 'axes_projection' in prepared_plots[plot]: ##labels seem not to be considered by tight_layout in that case
-                        plt.tight_layout(w_pad=1.5, h_pad=1.5)
-                    elif 'no_padding' in prepared_plots[plot]:
-                        plt.tight_layout(w_pad=0, h_pad=0, pad=0.)
-                    else:
-                        plt.tight_layout()
+                    if not "zoom_bbox" in prepared_plots[plot]:
+                        if 'axes_projection' in prepared_plots[plot]: ##labels seem not to be considered by tight_layout in that case
+                            plt.tight_layout(w_pad=1.5, h_pad=1.5)
+                        elif 'no_padding' in prepared_plots[plot]:
+                            plt.tight_layout(w_pad=0, h_pad=0, pad=0.)
+                        else:
+                            plt.tight_layout()
                 except:
                     print("Tight Layout failed for page {0} plot {1}".format(page_id+1,plot_id))
 
@@ -1175,6 +1205,32 @@ if __name__ == '__main__':
                               "x_axis_label":"Val",
                               "title":"side title",
                               }},
+              43:{"values":{0:{"type":"plot","y_values":4000*(-3.2-.46*np.log(.00001+np.sinc((0.0003*np.arange(1,10000))**6)**2)), 'color_index':0, 'legend':'plot 0'},
+                            1:{"type":"plot","y_values":10000*np.sin(np.linspace(1,10000,9)),"x_values":range(10000,1000,-1000),"linestyle":'--'},
+                            },
+                  "zoom_bbox":(-0.066,-0.9,0.1,-0.55),    
+                  "y_ticks":{"major":{"scalar":True}},    
+                  "xmin":3000,
+                  "ymin":-10200,                        
+                  "colors":["red","green","blue"],
+                  "plot_types":"example",
+                  "file_to_save":"example1.tif",
+                  "format_to_save":"tif", ##png, pdf, ps, eps or svg.
+                  "dir_to_save":"test_plots_gen",
+                  "x_axis_label":"x label",
+                  "y_axis_label":"y label",
+                  "title":"long axes - scalar y",
+                  "legends":{"manual_legends":legend_example},
+                  "grid":{"which":'major',"axis":"both"},
+                  "side_bar":{"values":{0:{"type":"scatter",'x_values':[0,-.25,.25,.5,0],'y_values':[1,3,7,15,25], 'color':["red","blue","green","orange","purple"], 's':90, "marker":'*'}}, 
+                              "xmin":-.5,
+                              "xmax":.5,
+                              "ymin":-1,          
+                              "ymax":27,
+                              "y_axis_label":"side bar plot label",
+                              "x_axis_label":"Val",
+                              "title":"side title",
+                              }},                              
               20:{"values":{0:{"type":"plot","y_values":np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
                             1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
                             2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, 
