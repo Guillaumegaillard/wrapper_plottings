@@ -847,7 +847,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
 
             # plt.gca().figure.savefig('tototu.png',format="png", dpi=2000, bbox_inches=extent)
             buf = io.BytesIO()
-            plt.savefig(buf, format='png', dpi=min(2000,10000/(delta_x*delta_y)**(1/2)) , bbox_inches=extent)# limit to reasonable dpi
+            plt.savefig(buf, format='png', dpi=min(800,10000/(delta_x*delta_y)**(1/2)) , bbox_inches=extent)# limit to reasonable dpi
             buf.seek(0)
 
             current_ax=plt.gca()
@@ -1459,6 +1459,6 @@ if __name__ == '__main__':
     plot_indivs(prepared_plots,show=False,file_to_save=None,dir_to_save=None,PDF_to_add=None,user_defined_dpi=100)
 
     pp1 = PdfPages('plottings.pdf')
-    plot_pages(prepared_plots, nb_plots_hor=2, nb_plots_vert=2, show=False, file_to_save="plottings", format_to_save='eps', dir_to_save="test_plots_gen", PDF_to_add=pp1)
+    plot_pages(prepared_plots, nb_plots_hor=2, nb_plots_vert=2, show=False, file_to_save="plottings", format_to_save='eps', dir_to_save="test_plots_gen", PDF_to_add=pp1,user_defined_dpi=100)
     pp1.close()
     
