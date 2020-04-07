@@ -615,14 +615,15 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 has_box_plots=True
                 my_box_plot[func_id]=zeplt.boxplot(plot_func["args"]["y_sets"], 
                     positions = plot_func["args"]["x_values"],
-                    sym='bx',
+                    sym='o',#'bx',
                     #whis = 1,#default 1.5
-                    whis='range',
+                    whis=kawargs["whis"] if "whis" in kawargs else (0,100),
                     widths=[plot_func["args"]["x_size"]]*len(plot_func["args"]["x_values"]), #(4.2, 4.2),
-                    showfliers=False,
+                    showfliers=kawargs["showfliers"] if "showfliers" in kawargs else False,
                     patch_artist = True)
                 
                 
+                # print(my_box_plot[func_id].keys())#dict_keys(['whiskers', 'caps', 'boxes', 'medians', 'fliers', 'means'])
                 not_legended=True
                 for element in my_box_plot[func_id]['medians']:
                     if "legends" in prepared_plots[plot] and not_legended:
@@ -652,7 +653,19 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                         element.set_color(kawargs["color"])#(colors[sheet_names.index(sheet)])#('blue')
                     element.set_linewidth(kawargs["linewidth"])
                     element.set_linestyle(kawargs["linestyle"])#('dashed')
-                    
+                for element in my_box_plot[func_id]['fliers']: # https://stackoverflow.com/questions/32480988/matplotlib-fliers-in-boxplot-object-not-setting-correctly
+                    element.set_markerfacecolor("None")#(colors[sheet_names.index(sheet)])#('blue')
+                    element.set_alpha(0.6)
+                    # element.set_color("None")#(colors[sheet_names.index(sheet)])#('blue')
+                    if "color" in kawargs:
+                        element.set_markeredgecolor(kawargs["color"])#(colors[sheet_names.index(sheet)])#('blue')
+                    else:
+                        element.set_markeredgecolor("purple")#(colors[sheet_names.index(sheet)])#('blue')
+
+                    element.set_markeredgewidth(kawargs["linewidth"])
+                    element.set_markersize(12*plot_func["args"]["x_size"])#('dashed')   
+                    # element.set_marker('d')#  overrides sym
+
                 
             func_id+=1
         
