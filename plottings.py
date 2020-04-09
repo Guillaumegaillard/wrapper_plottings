@@ -27,6 +27,8 @@ except ImportError:
 
 plot_has_been_shown=False
 
+
+
 """ DOCUMENTATION PARAMETERS """
 
 plot_params={}
@@ -281,6 +283,7 @@ def prepare_plots(plot_data):
                       "grid",
                       "axis_off",
                       "zoom_bbox",
+                      "zoom_bbox_dpi",
                       "side_bar",
                       "color_bar",
                       "tight_layout"]
@@ -612,7 +615,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 
             my_box_plot={}
             if plot_func["func_name"]=="boxplot":
-                has_box_plots=True
+                has_box_plots=kawargs["manage_ticks"] if "manage_ticks" in kawargs else True
                 my_box_plot[func_id]=zeplt.boxplot(plot_func["args"]["y_sets"], 
                     positions = plot_func["args"]["x_values"],
                     sym='o',#'bx',
@@ -620,7 +623,9 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                     whis=kawargs["whis"] if "whis" in kawargs else (0,100),
                     widths=[plot_func["args"]["x_size"]]*len(plot_func["args"]["x_values"]), #(4.2, 4.2),
                     showfliers=kawargs["showfliers"] if "showfliers" in kawargs else False,
-                    patch_artist = True)
+                    showcaps=kawargs["showcaps"] if "showcaps" in kawargs else True,
+                    patch_artist = True,
+                    manage_ticks=kawargs["manage_ticks"] if "manage_ticks" in kawargs else True)
                 
                 
                 # print(my_box_plot[func_id].keys())#dict_keys(['whiskers', 'caps', 'boxes', 'medians', 'fliers', 'means'])
@@ -634,25 +639,82 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
 #                    element.set_linestyle('solid')#('dashed')
                     element.set_linestyle(kawargs["linestyle"])#('dashed')
                     element.set_linewidth(kawargs["linewidth"])
+
+                elt_id=0
                 for element in my_box_plot[func_id]['boxes']:
                     if "color" in kawargs:
                         element.set_edgecolor(kawargs["color"])
                     element.set_facecolor(kawargs["fill_color"])
-                    element.set_linewidth(kawargs["linewidth"])
-#                    element.set_linestyle('solid')#('dashed')
+                    if "box_edge_width" in kawargs:
+                        element.set_linewidth(kawargs["box_edge_width"])
+                    else:
+                        element.set_linewidth(kawargs["linewidth"])
+                    # element.set_linestyle('solid')#('dashed')
                     element.set_linestyle(kawargs["linestyle"])#('dashed')
                     element.set_fill(kawargs["fill"])
                     #element.set_hatch('/')
+                    if "fill_map" in kawargs:
+                        # element.set_fill(False)
+                        vert=element.get_path().vertices
+
+                        if "cmap_list" in kawargs:
+                            nb_colors=1+len(kawargs["cmap_list"])
+                            colormap=mpl_colors.ListedColormap(kawargs["cmap_list"])
+                        else:
+                            nb_colors=256
+                            colormap=plt.cm.viridis
+
+                        
+                        if "clip_on_box" in kawargs:
+                            
+                            extent=[vert[0][0],vert[1][0],kawargs["fill_map"][0],kawargs["fill_map"][1]]
+                            # gradient = np.linspace(0, 1, len(kawargs["cmap_list"]))
+                            # gradient = np.vstack((gradient, gradient)).T
+                            # imb = plt.imshow(gradient, cmap=mpl_colors.ListedColormap(kawargs["cmap_list"]),#plt.cm.viridis,
+                            #                origin='lower', extent=extent,
+                            #                clip_path=element, clip_on=True)
+                            # imb.set_clip_path(element)
+                                
+                            imb = plt.pcolormesh(
+                                (extent[0], extent[1]), 
+                                np.linspace(extent[2],extent[3],nb_colors),
+                                np.linspace((0,0),(nb_colors-1,nb_colors-1),nb_colors),
+                                cmap=colormap,
+                                clip_path=element, clip_on=True,rasterized=True)
+                        else:
+
+                            extent=[vert[0][0],vert[1][0],min(plot_func["args"]["y_sets"][elt_id]),max(plot_func["args"]["y_sets"][elt_id])]
+
+                            pmin=(extent[2]-kawargs["fill_map"][0])/(kawargs["fill_map"][1]-kawargs["fill_map"][0])*nb_colors
+                            pmax=(extent[3]-kawargs["fill_map"][0])/(kawargs["fill_map"][1]-kawargs["fill_map"][0])*nb_colors
+
+                            imb = plt.pcolormesh(
+                                (extent[0], extent[1]), #X
+                                np.linspace(extent[2],extent[3],nb_colors),#Y
+                                np.linspace((pmin,pmin),(pmax,pmax),nb_colors), # color grid
+                                vmin=0,
+                                vmax=nb_colors-1,
+                                cmap=colormap, 
+                                rasterized=True
+                               )
+
+                        elt_id+=1
+
+
+
+
                 for element in my_box_plot[func_id]['whiskers']:
                     if "color" in kawargs:
                         element.set_color(kawargs["color"])#conf.colors[plot_func["color_index"]]
                     element.set_linewidth(kawargs["linewidth"])
                     element.set_linestyle(kawargs["linestyle"])#('dashed')
+
                 for element in my_box_plot[func_id]['caps']:
                     if "color" in kawargs:
                         element.set_color(kawargs["color"])#(colors[sheet_names.index(sheet)])#('blue')
                     element.set_linewidth(kawargs["linewidth"])
                     element.set_linestyle(kawargs["linestyle"])#('dashed')
+
                 for element in my_box_plot[func_id]['fliers']: # https://stackoverflow.com/questions/32480988/matplotlib-fliers-in-boxplot-object-not-setting-correctly
                     element.set_markerfacecolor("None")#(colors[sheet_names.index(sheet)])#('blue')
                     element.set_alpha(0.6)
@@ -663,7 +725,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                         element.set_markeredgecolor("purple")#(colors[sheet_names.index(sheet)])#('blue')
 
                     element.set_markeredgewidth(kawargs["linewidth"])
-                    element.set_markersize(12*plot_func["args"]["x_size"])#('dashed')   
+                    element.set_markersize(kawargs["fliersize"] if "fliersize" in kawargs else 12*plot_func["args"]["x_size"])#('dashed')   
                     # element.set_marker('d')#  overrides sym
 
                 
@@ -833,6 +895,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
         
         if "grid" in prepared_plots[plot]:
             zeplt.grid(**prepared_plots[plot]["grid"])
+            plt.gca().set_axisbelow(True)
         
         if "axis_off" in prepared_plots[plot] and prepared_plots[plot]["axis_off"]:
             plt.gca().set_axis_off()
@@ -860,7 +923,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
 
             # plt.gca().figure.savefig('tototu.png',format="png", dpi=2000, bbox_inches=extent)
             buf = io.BytesIO()
-            plt.savefig(buf, format='png', dpi=min(800,10000/(delta_x*delta_y)**(1/2)) , bbox_inches=extent)# limit to reasonable dpi
+            plt.savefig(buf, format='png', dpi=min(prepared_plots[plot]["zoom_bbox_dpi"],10000/(delta_x*delta_y)**(1/2)) , bbox_inches=extent)# limit to reasonable dpi
             buf.seek(0)
 
             current_ax=plt.gca()
@@ -1222,6 +1285,7 @@ if __name__ == '__main__':
                             1:{"type":"plot","y_values":10000*np.sin(np.linspace(1,10000,9)),"x_values":range(10000,1000,-1000),"linestyle":'--'},
                             },
                   "zoom_bbox":(-0.066,-0.9,0.1,-0.55),    
+                  "zoom_bbox_dpi":600,
                   "y_ticks":{"major":{"scalar":True}},    
                   "xmin":3000,
                   "ymin":-10200,                        
@@ -1363,7 +1427,34 @@ if __name__ == '__main__':
                   "title":"double scatter example 1",
                   "legends":{"italic_legends":True}},
                2:{"values":{0:{"type":"boxplot",'x_values':[5,6,7],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.7, "color":"green", "linewidth":3., 'fill':True, 'legend':'AHAHAH?'},
-                            1:{"type":"boxplot",'x_values':[1,2,3],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.37, "color":"purple", 'legend':'red, no?'}}, 
+                            1:{"type":"boxplot",'x_values':[1,2,3],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.37, "color":"purple", 'legend':'red, no?'}, 
+                            2:{
+                                "type":"boxplot",
+                                'x_values':[9,10,11],
+                                'y_sets': [[2,5,2],[3,7,2,15],[2,5,4]],
+                                'whis':(5,95), 
+                                "showfliers":True,
+                                "showcaps":False,
+                                "manage_ticks":False, 
+                                'x_size':0.7,                    
+                                "fliersize":4.4,
+                                "linewidth":2.2,
+                                "box_edge_width":3.5,
+                                "fill_map":(0,10),
+                                "clip_on_box":True,                                
+                                "color":'black',
+                                },
+                            3:{
+                                "type":"boxplot",
+                                'x_values':[13,14,15],
+                                'y_sets': [[2,5,2],[3,7,2,15],[2,5,4]],
+                                'whis':1.5, 
+                                'x_size':0.7,                    
+                                "fill_map":(0,30),
+                                "cmap_list":conf.colorbar_colors[:-1],
+                                "linestyle":':',
+                                "linewidth":1.2,
+                                }},                            
                   "plot_types":"boxplot",
                   "file_to_save":"boxplot_example.png",
                   "format_to_save":"png", ##png, pdf, ps, eps or svg.
@@ -1385,6 +1476,7 @@ if __name__ == '__main__':
                                       "labels":["ckzUGF"],
                                       "params":{"direction":'out',"left":'on',"right":'off',"labelleft":'on'}}},
                   "xmax":20,
+                  "ymax":20,
                   "tight_layout":True},
                3:{"values":{0:{"type":"scatter",'x_values':[5,6,7],'y_values':[1,5,2], 'color_index':0, 'legend':'black 128'},
                             1:{"type":"scatter",'x_values':[4,5,3],'y_values':[1.5,5.5,1.6], 'color_index':1, 'legend':'red scatter, no?'},
