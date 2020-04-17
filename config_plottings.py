@@ -55,7 +55,7 @@ used_font=dfont
 colors=['black','red']
 #manage  colorbar colors
 colorbar_colors=['g', 'b','cyan','magenta','yellow','orange', 'r','white']
-colorbar_color_bounds=[0, 0.02, 0.05, 0.1, 0.20, 0.4, 0.8, 0.95, 1.0]
+colorbar_color_bounds=[0, 0.05, 0.1, 0.20, 0.4, 0.5, 0.8, 0.95, 1.0]
 
 general_plots_linewidth=1.
 scatter_size=50
@@ -153,7 +153,7 @@ def update(subp=1):   #FIGURE
     colors=['black','red']
     #manage  colorbar colors
     colorbar_colors=['g', 'b','cyan','magenta','yellow','orange', 'r','white']
-    colorbar_color_bounds=[0, 0.02, 0.05, 0.1, 0.20, 0.4, 0.8, 0.95, 1.0]
+    colorbar_color_bounds=[0, 0.05, 0.1, 0.20, 0.4, 0.5, 0.8, 0.95, 1.0]#[0, 0.02, 0.05, 0.1, 0.20, 0.4, 0.8, 0.95, 1.0]
     
     general_plots_linewidth=subp**(-1)*1.
     scatter_size=subp**(-1)*50

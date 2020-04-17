@@ -456,7 +456,9 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
     if has_predef_axes:
         zeplt=in_ax
         zeplt.yaxis.tick_right()
-        zeplt.set_xticks([])                     
+        zeplt.set_xticks([])   
+
+    other_legend_handles=[]                  
         
     for plot in prepared_plots:
         #this fig
@@ -531,6 +533,11 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 
             if plot_func["func_name"]=="annotate":
                 zeplt.annotate(*plot_func["args"], **kawargs)
+                if 'label' in kawargs and len(kawargs['label'])>0:
+                    manual_label=mpl_lines.Line2D(
+                                [],[],color=kawargs["color"] if "color" in kawargs else 'k',
+                                linestyle='-', fillstyle='none',mew=0.6,ms=6,label=kawargs['label'])
+                    other_legend_handles.append(manual_label)
             
             if plot_func["func_name"]=="table":
                 the_table=zeplt.table(**kawargs)
@@ -867,10 +874,11 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             if "italic_legends" in prepared_plots[plot]["legends"] and prepared_plots[plot]["legends"]["italic_legends"]:
                 rcParams['font.style'] = 'italic'
                 if "manual_legends" in prepared_plots[plot]["legends"]:  
-                    leg=zeplt.legend(handles=prepared_plots[plot]["legends"]["manual_legends"],fontsize=legend_labels_font_size,markerscale=legend_markerscale, loc=leg_loc)        
+                    other_legend_handles+=prepared_plots[plot]["legends"]["manual_legends"]
+                if len(other_legend_handles)>0:
+                    leg=zeplt.legend(handles=other_legend_handles,fontsize=legend_labels_font_size,markerscale=legend_markerscale, loc=leg_loc)        
                 else:
                     myhandles, mylabels = plt.gca().get_legend_handles_labels()
-                    #print(myhandles,mylabels)
                     if len(myhandles)!=0:
                         leg=zeplt.legend(fontsize=legend_labels_font_size,markerscale=legend_markerscale, loc=leg_loc)            
                 rcParams['font.style'] = 'normal'
@@ -879,7 +887,9 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                         legend_element.set_linewidth(legend_linewidth)   
             else:
                 if "manual_legends" in prepared_plots[plot]["legends"]:  
-                    leg=zeplt.legend(handles=prepared_plots[plot]["legends"]["manual_legends"],fontsize=legend_labels_font_size,markerscale=legend_markerscale, loc=leg_loc)
+                    other_legend_handles+=prepared_plots[plot]["legends"]["manual_legends"]
+                if len(other_legend_handles)>0:
+                    leg=zeplt.legend(handles=other_legend_handles,fontsize=legend_labels_font_size,markerscale=legend_markerscale, loc=leg_loc)
                 else:
                     myhandles, mylabels = plt.gca().get_legend_handles_labels()
                     #print(myhandles,mylabels)
@@ -1472,7 +1482,7 @@ if __name__ == '__main__':
                   "y_ticks":{"major":{"positions":[3],
                                       "labels":["baa"],
                                       "params":{"direction":'out',"left":'on',"right":'off',"labelleft":'on'}},
-                             "minor":{"positions":[3.5],
+                             "minor":{"positions":[4.5],
                                       "labels":["ckzUGF"],
                                       "params":{"direction":'out',"left":'on',"right":'off',"labelleft":'on'}}},
                   "xmax":20,
@@ -1504,7 +1514,8 @@ if __name__ == '__main__':
                                             
                                             ls="solid",
                                             zorder=10
-                                            )}}, 
+                                            ),
+                                "color":"orange"}}, 
                   "plot_types":"as:kjghzlrbg",
                   "file_to_save":"arrow.png",
                   "format_to_save":"png", ##png, pdf, ps, eps or svg.
@@ -1514,7 +1525,7 @@ if __name__ == '__main__':
                   "title":"Jack Sp(ecial) arrow example",
                   "xmax":10,
                   "ymax":10,
-                  "legends":{"italic_legends":True}},}
+                  "legends":{"italic_legends":True,"legend_linewidth":3.}},}
     some_data[25]={
           "values":{
             0:{"type":"plot","y_values":[0, 20, 15], "x_values":[0,np.pi/4,np.pi/8],  'color':'purple', "linewidth":4., 'legend':'plot proj polar'},
