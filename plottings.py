@@ -1087,7 +1087,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             
                 
             
-def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, user_defines_size=False,user_defined_size=conf.figsize,user_defined_dpi=conf.dpi):
+def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, grid_specs=[], show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, user_defines_size=False,user_defined_size=conf.figsize,user_defined_dpi=conf.dpi):
     global plot_has_been_shown
     
     if show:
@@ -1099,32 +1099,42 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, show=False,file_
         conf.set_figsize(user_defined_size)
 
     axes={}
-    nb_pages=int(len(prepared_plots)/(nb_plots_vert*nb_plots_hor))
-    if len(prepared_plots)%(nb_plots_vert*nb_plots_hor)!=0:
-        nb_pages+=1
+
+    plots_per_grid=len(grid_specs)
+    page_grid=grid_specs[:]
+    if plots_per_grid==0:#no spec: isogrid 
+        plots_per_grid=nb_plots_vert*nb_plots_hor
+        for row in range(nb_plots_vert):
+            for col in range(nb_plots_hor):
+                page_grid.append((row,col))
+
+    nb_pages=int(len(prepared_plots)/(plots_per_grid))
+    if len(prepared_plots)%(plots_per_grid)!=0:
+        nb_pages+=1        
     
     sppk=sorted(prepared_plots.keys())
     
     for page_id in range(nb_pages):
         print("setting page {0}/{1}...".format(page_id+1,nb_pages))
         
-        plt.figure(num=page_id, figsize=conf.figsize, dpi=user_defined_dpi)
+        pfig=plt.figure(num=page_id, figsize=conf.figsize, dpi=user_defined_dpi)
+        gs = pfig.add_gridspec(nb_plots_vert, nb_plots_hor)
         
         for plot_index in range(len(sppk)):
             plot=sppk[plot_index]
             # print(prepared_plots[plot])
-            page=int(plot_index/(nb_plots_vert*nb_plots_hor))
-            plot_id=plot_index%(nb_plots_vert*nb_plots_hor)
+            page=int(plot_index/plots_per_grid)
+            plot_id=plot_index%(plots_per_grid)
             if page>page_id:
                 break
             if page==page_id:
                 if 'axes_projection' in prepared_plots[plot]:
                     if prepared_plots[plot]['axes_projection']=='polar':
-                        axes[plot]=plt.subplot(nb_plots_vert,nb_plots_hor,plot_id+1,polar=True)
+                        axes[plot]=pfig.add_subplot(gs[page_grid[plot_id]],polar=True)
                     elif prepared_plots[plot]['axes_projection']=='mollweide':
-                        axes[plot]=plt.subplot(nb_plots_vert,nb_plots_hor,plot_id+1,projection="mollweide")
+                        axes[plot]=pfig.add_subplot(gs[page_grid[plot_id]],projection="mollweide")
                 else:
-                    axes[plot]=plt.subplot(nb_plots_vert,nb_plots_hor,plot_id+1,polar=False)
+                    axes[plot]=pfig.add_subplot(gs[page_grid[plot_id]],polar=False)
                 
                 if plot in prepared_plots:
                     plot_indivs({0:dict(prepared_plots[plot])},show=False,file_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=True)
@@ -1250,7 +1260,7 @@ if __name__ == '__main__':
     legend_example.append(mpl_lines.Line2D([],[],color='k',marker='+',linestyle='',fillstyle='none',mew=0.6,ms=8,label='bolos'))
     
     some_data={
-        0:{"values":{0:{"type":"plot","y_values":np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
+        0:{"values":{0:{"type":"plot","y_values":np.log(range(1,10)), 'color_index':0, 'legend':'plot 0','marker':'x','markersize':3},
                             1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
                             2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, 
                             },
@@ -1575,6 +1585,6 @@ if __name__ == '__main__':
     plot_indivs(prepared_plots,show=False,file_to_save=None,dir_to_save=None,PDF_to_add=None,user_defined_dpi=100)
 
     pp1 = PdfPages('plottings.pdf')
-    plot_pages(prepared_plots, nb_plots_hor=2, nb_plots_vert=2, show=False, file_to_save="plottings", format_to_save='eps', dir_to_save="test_plots_gen", PDF_to_add=pp1,user_defined_dpi=100)
+    plot_pages(prepared_plots, nb_plots_hor=2, nb_plots_vert=2, grid_specs=[(0,slice(None,None)),(1,0),(1,1)], show=False, file_to_save="plottings", format_to_save='eps', dir_to_save="test_plots_gen", PDF_to_add=pp1,user_defined_dpi=100)
     pp1.close()
     
