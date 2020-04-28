@@ -14,6 +14,8 @@ import matplotlib.spines as mpl_spines
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.axes as maxes
 from matplotlib.ticker import ScalarFormatter
+from matplotlib.patches import PathPatch
+
 
 import io
 from PIL import Image
@@ -33,7 +35,7 @@ plot_has_been_shown=False
 
 plot_params={}
 function_params={}
-plot_types=["plot","polar","semilogx","semilogy","loglog","scatter","boxplot","vline","hline","vspan","hspan","annotate","imshow","pcolormesh","bar","text","table"]
+plot_types=["plot","polar","semilogx","semilogy","loglog","scatter","boxplot","violinplot","vline","hline","vspan","hspan","annotate","imshow","pcolormesh","bar","text","table"]
 args_params={}
 details={"plot_params":{},"func_params":{}}
 for plot_type in plot_types:
@@ -154,6 +156,18 @@ details["func_params"]["boxplot"]["fill"]="""Boolean filling facecolor for insid
 details["func_params"]["boxplot"]["fill_color"]="""The filling facecolor for inside the bp. Default cyan."""    
 details["func_params"]["boxplot"]["x_size"]="""The width is constant in current wrapper."""    
 
+
+function_params["violinplot"]="""The violinplot curve creation and configuration function. default: no fliers."""
+args_params["violinplot"]["legend"]="""The legend associated with the plot function."""
+args_params["violinplot"]["type"]="""The type of plot function: 'violinplot'."""
+args_params["violinplot"]["y_sets"]="""The sets of y values of the data points."""
+args_params["violinplot"]["x_values"]="""The x positions of the violinplot."""
+args_params["violinplot"]["x_size"]="""The width of the box plots."""
+details["func_params"]["violinplot"]["linewidth"]="""lw of the violinplot lines. Default exists in config_plotting."""    
+details["func_params"]["violinplot"]["linestyle"]="""ls of the violinplot lines. Default exists in config_plotting."""    
+details["func_params"]["violinplot"]["fill"]="""Boolean filling facecolor for inside the bp. Default False."""    
+details["func_params"]["violinplot"]["fill_color"]="""The filling facecolor for inside the bp. Default cyan."""    
+details["func_params"]["violinplot"]["x_size"]="""Constant width or max for custom w.r.t. range degree."""    
 
 
 function_params["vline"]="""The vertical line creation and configuration function."""
@@ -323,6 +337,13 @@ def prepare_plots(plot_data):
                 bpvalues=["y_sets","x_values","x_size"]
                 prepared_params+=bpvalues
             
+            if ptype=="violinplot":
+                plot_func["args"]={"y_sets":plot_data[plot]["values"][cloud]["y_sets"],
+                                   "x_values":plot_data[plot]["values"][cloud]["x_values"],
+                                   "x_size":plot_data[plot]["values"][cloud]["x_size"]}
+                bpvalues=["y_sets","x_values","x_size"]
+                prepared_params+=bpvalues
+
             if ptype=="vline":    
                 if "y_axis_prop_range" in plot_data[plot]["values"][cloud]:
                     plot_func["args"]=[plot_data[plot]["values"][cloud]["x_pos"],
@@ -735,7 +756,156 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                     element.set_markersize(kawargs["fliersize"] if "fliersize" in kawargs else 12*plot_func["args"]["x_size"])#('dashed')   
                     # element.set_marker('d')#  overrides sym
 
+
+            if plot_func["func_name"]=="violinplot":
+                considered_widths=[plot_func["args"]["x_size"]]*len(plot_func["args"]["x_values"])
+
+                if "custom_x_size" in kawargs:
+                    maxwidth=plot_func["args"]["x_size"]
+                    dyel=kawargs["custom_x_size"]["delta_y"]
+
+                    mdw=0
+                    wimax=[]
+                    for yes in plot_func["args"]["y_sets"]:
+                        ywidth=0
+                        current_y_range=min(yes)
+                        ymin=min(yes)
+                        ymax=max(yes)
+                        rows={i:[] for i in range(int((ymax-ymin)/dyel)+1)}
+                        for i in sorted(yes):
+                            rows[int((i-ymin)/dyel)].append(i)
+
+                        ywidth=max(len(rows[i]) for i in rows) #in dots
+                        wimax.append(ywidth)
+                        mdw=max(mdw,ywidth)
+
+                    dxel=maxwidth/mdw
+
+                    considered_widths=[j*dxel for j in wimax]
+
+                if "scattered" in kawargs:
+                    if not ("custom_x_size" in kawargs):
+                        dyel=1
+                        dxel=plot_func["args"]["x_size"]/10
+
+                    xind=0
+                    for yes in plot_func["args"]["y_sets"]:
+                        xind+=1
+
+                        ymin=min(yes)
+                        ymax=max(yes)
+                        rows={i:[] for i in range(int((ymax-ymin)/dyel)+1)}
+                        for i in sorted(yes):
+                            rows[int((i-ymin)/dyel)].append(i)
+
+                        xax=[]
+                        for row in rows:
+                            nel=len(rows[row])
+                            for ptind in range(nel):
+                                xval=plot_func["args"]["x_values"][xind-1]+(ptind*dxel - dxel*nel/2 + dxel - ((nel)%2)*dxel/2 - ((nel+1)%2)*dxel/2 )
+                                xax.append(xval)
+
+                        plt.scatter(xax,sorted(yes), zorder=10, **(kawargs["scattered"]))
+
+
+
+                violin_func=zeplt.violinplot(plot_func["args"]["y_sets"], 
+                    positions = plot_func["args"]["x_values"],
+                    widths=considered_widths,
+                    showmeans=True,
+                    showmedians=True,
+                    showextrema=True,
+                    bw_method=kawargs["bw_method"] if "bw_method" in kawargs else 'scott',
+                    ) #(4.2, 4.2),
                 
+                
+                # print(violin_func.keys())#dict_keys(['bodies', 'cmeans', 'cmaxes', 'cmins', 'cbars', 'cmedians'])
+                not_legended=True
+                median_lines=violin_func['cmedians']
+                if "legends" in prepared_plots[plot] and not_legended:
+                    median_lines.set_label(plot_func["legend"])# label
+                    not_legended=False
+                if "color" in kawargs:
+                    median_lines.set_color(kawargs["color"])
+#                    element.set_linestyle('solid')#('dashed')
+                median_lines.set_linestyle(kawargs["linestyle"])#('dashed')
+                median_lines.set_linewidth(kawargs["linewidth"])
+                cmin_lines=violin_func['cmins']
+                if "color" in kawargs:
+                    cmin_lines.set_color(kawargs["color"])
+                cmin_lines.set_linewidth(kawargs["linewidth"])
+                cmin_lines.set_linestyle(kawargs["linestyle"])#('dashed')
+
+                cbars_lines=violin_func['cbars']
+                if "color" in kawargs:
+                    cbars_lines.set_color(kawargs["color"])
+                cbars_lines.set_linewidth(kawargs["linewidth"])
+                cbars_lines.set_linestyle(kawargs["linestyle"])#('dashed')
+
+                cmeans_lines=violin_func['cmeans'] 
+                cmeans_lines.set_alpha(0.6)
+                if "color" in kawargs:
+                    cmeans_lines.set_color(kawargs["color"])#(colors[sheet_names.index(sheet)])#('blue')
+
+                elt_id=0
+                for element in violin_func['bodies']:
+                    element.set_facecolor(kawargs["fill_color"])
+                    if "violin_edge_width" in kawargs:
+                        element.set_linewidth(kawargs["violin_edge_width"])
+                    else:
+                        element.set_linewidth(kawargs["linewidth"])
+                    # element.set_linestyle('solid')#('dashed')
+                    element.set_linestyle(kawargs["linestyle"])#('dashed')
+
+                    if not kawargs["fill"]:
+                        element.set_facecolor('white')
+                        # element.set_alpha(0)
+
+                    if "color" in kawargs:
+                        element.set_edgecolor(kawargs["color"])
+
+                    if "fill_map" in kawargs:
+                        vert=element.get_paths()[0].vertices
+
+                        if "cmap_list" in kawargs:
+                            nb_colors=1+len(kawargs["cmap_list"])
+                            colormap=mpl_colors.ListedColormap(kawargs["cmap_list"])
+                        else:
+                            nb_colors=256
+                            colormap=plt.cm.viridis
+
+                        patch_edgecolor=kawargs["color"] if "color" in kawargs else 'k'
+                        patch=PathPatch(element.get_paths()[0], facecolor='none', edgecolor=patch_edgecolor, linestyle=kawargs["linestyle"])
+                        plt.gca().add_patch(patch)
+
+                        
+                        if not ("indep_violin_fill" in kawargs):
+                            extent=[min(vert[:,0]), max(vert[:,0]),kawargs["fill_map"][0],kawargs["fill_map"][1]]
+
+                            imb = plt.pcolormesh(
+                                (extent[0], extent[1]), 
+                                np.linspace(extent[2],extent[3],nb_colors),
+                                np.linspace((0,0),(nb_colors-1,nb_colors-1),nb_colors),
+                                cmap=colormap,
+                                clip_path=patch, clip_on=True,rasterized=True) #element.get_transformed_clip_path_and_affine()
+
+                            imb.set_clip_path(patch)
+                        else:
+                            extent=[min(vert[:,0]), max(vert[:,0]),min(plot_func["args"]["y_sets"][elt_id]),max(plot_func["args"]["y_sets"][elt_id])]
+
+                            imb = plt.pcolormesh(
+                                (extent[0], extent[1]), #X
+                                np.linspace(extent[2],extent[3],nb_colors),#Y
+                                np.linspace((0,0),(nb_colors-1,nb_colors-1),nb_colors),# color grid       
+                                vmin=0,
+                                vmax=nb_colors-1,
+                                cmap=colormap, 
+                                clip_path=patch, clip_on=True,
+                                rasterized=True
+                               )
+                            imb.set_clip_path(patch)
+
+                    elt_id+=1
             func_id+=1
         
         #ticks
@@ -939,9 +1109,9 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             current_ax=plt.gca()
 
             inax_x_label_offset=0
-            inax_y_label_offset=0
+            inax_y_label_offset=0.02
             inax_w_label_offset=-0.02 # potential side/color bar
-            inax_h_label_offset=0
+            inax_h_label_offset=-0.03
             if 'axes_projection' in prepared_plots[plot]:
                 if prepared_plots[plot]['axes_projection']=='mollweide':
                     inax_x_label_offset=0
@@ -951,7 +1121,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
 
             # rect = (0.01, 0.01, .98, .98)
             # rect = (0.01, 0.12, .98, .86)
-            rect=(oriposi.x0+inax_x_label_offset,oriposi.y0+inax_y_label_offset,oriposi.x1-oriposi.x0+inax_w_label_offset,oriposi.y1-oriposi.y0)
+            rect=(oriposi.x0+inax_x_label_offset,oriposi.y0+inax_y_label_offset,oriposi.x1-oriposi.x0+inax_w_label_offset,oriposi.y1-oriposi.y0+inax_h_label_offset)
 
             ax2 = plt.Axes(plt.gcf(), rect)
             plt.gcf().add_axes(ax2)
@@ -1474,6 +1644,18 @@ if __name__ == '__main__':
                                 "cmap_list":conf.colorbar_colors[:-1],
                                 "linestyle":':',
                                 "linewidth":1.2,
+                                },
+                            4:{
+                                "type":"boxplot",
+                                'x_values':[17,18,19],
+                                'y_sets': [[2,5,2],[3,7,2,15],[2,5,4]],
+                                'whis':1.5, 
+                                'x_size':0.7,                    
+                                "fill_map":(0,30),
+                                "clip_on_box":True,                                
+                                "cmap_list":conf.colorbar_colors[:-1],
+                                "linestyle":':',
+                                "linewidth":1.2,
                                 }},                            
                   "plot_types":"boxplot",
                   "file_to_save":"boxplot_example.png",
@@ -1536,7 +1718,7 @@ if __name__ == '__main__':
                   "xmax":10,
                   "ymax":10,
                   "legends":{"italic_legends":True,"legend_linewidth":3.}},}
-    some_data[25]={
+    some_data[27]={
           "values":{
             0:{"type":"plot","y_values":[0, 20, 15], "x_values":[0,np.pi/4,np.pi/8],  'color':'purple', "linewidth":4., 'legend':'plot proj polar'},
             1:{"type":"plot","y_values":20+10*np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
@@ -1571,6 +1753,67 @@ if __name__ == '__main__':
                 "legend_loc":"best"}, #right, center left, upper right, lower right, best, center, lower left, center right, upper left, upper center, lower center
                 "x_ticks":{"major":{"range_step":1, "from":0, "to":10}},
                 "axis_off":True}
+
+    some_data[25]={"values":{0:{
+                                "type":"violinplot",'x_values':[5,6,7],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.7, 
+                                "color":"green", "linewidth":3., 'fill':True, 'legend':'AHAHAH?'},
+                            1:{
+                                "type":"violinplot",'x_values':[1,2,3],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.37, 
+                                "color":"purple", 'legend':'red, no?',"violin_edge_width":8}, 
+                            2:{
+                                "type":"violinplot",
+                                'x_values':[9,10,11],
+                                'y_sets': [[2,5,2],[3,7,2,15],[2,5,4]],
+                                'x_size':0.7,                    
+                                "linewidth":2.2,
+                                "fill_map":(0,10),
+                                "indep_violin_fill":True,          #each violin has its own colormap                       
+                                "color":'black',
+                                },
+                            3:{
+                                "type":"violinplot",
+                                'x_values':[13,14,15],
+                                'y_sets': [[2,5,2],[3,7,2,15],[2,5,4]],
+                                'x_size':0.7,       #default same size if not custom
+                                'custom_x_size':{"delta_y":1},   #width of each violin as proportion of x_size w.r.t max numvals in y ranges of size delta_y
+                                "fill_map":(0,30),              #all violins share the same colormap
+                                "cmap_list":conf.colorbar_colors[:-1],
+                                "linestyle":':',
+                                "linewidth":1.2,
+                                },
+                            4:{
+                                "type":"violinplot",
+                                "bw_method":0.2, #default  'scott', 'silverman', scalar
+                                'x_values':[17,18,19],
+                                'y_sets': [[2,5,2],[3,7,2,15],[2,5,4]],
+                                'x_size':0.7,       
+                                'scattered':{'color':"orange", 's':50, "marker":'*'},        # dots. considers custom delta_y (or default 1, max 10 dots per row)
+                                "linewidth":1.2,
+                                'color':"blue",
+                                }},                            
+                  "plot_types":"violinplot",
+                  "file_to_save":"violinplot_example.png",
+                  "format_to_save":"png", ##png, pdf, ps, eps or svg.
+                  "dir_to_save":"test_plots_gen",
+                  "y_axis_label":"violinplot y label",
+                  "x_axis_label":"violin x lbel",
+                  "title":"multiple violinplot example",
+                  "legends":{"italic_legends":True},
+                  "x_ticks":{"major":{"range_step":1, "from":1, "to":8,
+                                      "labels":["b",'a',2],
+                                      "params":{"direction":'out',"bottom":'off',"top":'off',"labelbottom":'on'}},
+                             "minor":{"range_step":1, "from":1.5, "to":8.5,
+                                      "labels":["c",'d',1],
+                                      "params":{"direction":'out',"bottom":'off',"top":'off',"labelbottom":'on'}}},
+                  "y_ticks":{"major":{"positions":[3],
+                                      "labels":["baa"],
+                                      "params":{"direction":'out',"left":'on',"right":'off',"labelleft":'on'}},
+                             "minor":{"positions":[4.5],
+                                      "labels":["ckzUGF"],
+                                      "params":{"direction":'out',"left":'on',"right":'off',"labelleft":'on'}}},
+                  "xmax":20,
+                  "ymax":20,
+                  "tight_layout":True}            
 
     len_data=len(some_data)
     some_data_keys=list(some_data.keys())
