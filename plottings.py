@@ -1199,14 +1199,16 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             # Set the colormap and norm to correspond to the data for which
             # the colorbar will be used.
             cmap = mpl_colors.ListedColormap(color_list)#['r', 'orange', 'b', 'g'])
-            norm = mpl_colors.BoundaryNorm(color_bounds, cmap.N)
+            color_bounds_crop=color_bounds[:cmap.N]
+            color_bounds_crop=np.append(color_bounds_crop,1.)
+            norm = mpl_colors.BoundaryNorm(color_bounds_crop, cmap.N)
             cb2 = mpl_colorbar.ColorbarBase(ax2, cmap=cmap,
                                             norm=norm,
                                             # to use 'extend', you must
                                             # specify two extra boundaries:
-                                            boundaries=color_bounds,
+                                            boundaries=color_bounds_crop,
                                             #extend='both',
-                                            ticks=color_bounds,  # optional
+                                            ticks=color_bounds_crop,  # optional
                                             spacing='proportional',
                                             #orientation='vertical',
                                             #**kw
@@ -1658,10 +1660,10 @@ if __name__ == '__main__':
             "title":"double boxplot example",
             "legends":{"italic_legends":True},
             "x_ticks":{"major":{"range_step":1, "from":1, "to":8,
-                              "labels":["b",'a',2],
+                              "labels":["b",'a',2]+['']*4,
                               "params":{"direction":'out',"bottom":'off',"top":'off',"labelbottom":'on'}},
                      "minor":{"range_step":1, "from":1.5, "to":8.5,
-                              "labels":["c",'d',1],
+                              "labels":["c",'d',1]+['']*4,
                               "params":{"direction":'out',"bottom":'off',"top":'off',"labelbottom":'on'}}},
             "y_ticks":{"major":{"positions":[3],
                               "labels":["baa"],
@@ -1789,10 +1791,10 @@ if __name__ == '__main__':
         "title":"multiple violinplot example",
         "legends":{"italic_legends":True},
         "x_ticks":{"major":{"range_step":1, "from":1, "to":8,
-                          "labels":["b",'a',2],
+                          "labels":["b",'a',2]+['']*4,
                           "params":{"direction":'out',"bottom":'off',"top":'off',"labelbottom":'on'}},
                  "minor":{"range_step":1, "from":1.5, "to":8.5,
-                          "labels":["c",'d',1],
+                          "labels":["c",'d',1]+['']*4,
                           "params":{"direction":'out',"bottom":'off',"top":'off',"labelbottom":'on'}}},
         "y_ticks":{"major":{"positions":[3],
                           "labels":["baa"],
