@@ -146,6 +146,14 @@ def update(subp=1):   #FIGURE
             if fig_nb_column_width==2:
                 figsize=(1.*book_two_columns_width*inch,0.5*book_height*inch)
                         
+    if fig_profile=="ACM-sigconf":
+        if fig_orientation=="portait":
+            if fig_nb_column_width==1:
+                figsize=(541.295/72,0.16*book_height*inch)
+            if fig_nb_column_width==2:
+                figsize=(241.14749/72,0.75*241.14749/72)
+
+
     hfont = {'fontname':'Helvetica'}
     dfont = {'fontname':'DejaVu Sans'}
     afont = {'fontname':'Arial'}
@@ -228,6 +236,23 @@ def update(subp=1):   #FIGURE
         
         scatter_size=25
         general_plots_linewidth=subp**(-1)*1.
+
+    if fig_profile=="ACM-sigconf":
+        dpi=600 #only for non-vector formats
+        
+        axes_labels_font_size=5
+        legend_labels_font_size=7
+        ticks_labels_font_size=4
+        title_font_size=12
+        title_and_axes_labelpad=2
+        
+        legend_markerscale=1.
+        legend_border_width=0.008
+        legend_border_color='black'
+        legend_linewidth=.4
+        
+        scatter_size=5
+        general_plots_linewidth=.5#subp**(-1)*0.1    
     
     
     plot_params={"plot":{"linewidth":general_plots_linewidth},
@@ -250,3 +275,18 @@ def update(subp=1):   #FIGURE
                  "table":{'loc':'center',"cellLoc":'center', "rowLoc":'center',"colLoc":'center','fontsize':ticks_labels_font_size}}                
 
 
+def update_ticks_labels_font_size(new_size):   #FIGURE
+    global ticks_labels_font_size,plot_params    
+    
+    ticks_labels_font_size=new_size
+    
+    plot_params["text"]["fontdict"]["fontsize"]=ticks_labels_font_size
+    plot_params["annotate"]["size"]=ticks_labels_font_size
+    plot_params["table"]["fontsize"]=ticks_labels_font_size
+
+
+def update_axes_labels_font_size(new_size):   #FIGURE
+    global axes_labels_font_size
+
+    axes_labels_font_size=new_size
+    
