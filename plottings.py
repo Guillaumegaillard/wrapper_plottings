@@ -291,6 +291,7 @@ def prepare_plots(plot_data):
                       "ymax",
                       "axes_projection",
                       "no_padding",
+                      "layout_padding",
                       "theta_min",
                       "theta_max",
                       "rmin",
@@ -1359,13 +1360,16 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, grid_specs=[], s
                     plt.plot(np.log(range(1,10)))
             
                 try:
-                    if not "zoom_bbox" in prepared_plots[plot]:
+                    if (
+                        not ("zoom_bbox" in prepared_plots[plot]) 
+                        and not ("tight_layout" in prepared_plots[plot] and not prepared_plots[plot]["tight_layout"])):
                         if 'axes_projection' in prepared_plots[plot]: ##labels seem not to be considered by tight_layout in that case
                             plt.tight_layout(w_pad=1.5, h_pad=1.5)
                         elif 'no_padding' in prepared_plots[plot]:
                             plt.tight_layout(w_pad=0, h_pad=0, pad=0.)
                         else:
-                            plt.tight_layout()
+                            layout_padding=prepared_plots[plot]["layout_padding"] if "layout_padding" in prepared_plots[plot] else {}
+                            plt.tight_layout(**layout_padding)
                 except:
                     print("Tight Layout failed for page {0} plot {1}".format(page_id+1,plot_id))
 
@@ -1548,7 +1552,7 @@ if __name__ == '__main__':
         20:{"values":{
                 0:{"type":"plot","y_values":np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
                 1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
-                2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, },
+                2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1], "linewidth":3}},
             "colors":["red","green","blue"],
             "plot_types":"example",
             "file_to_save":"example1.png",
@@ -1558,6 +1562,7 @@ if __name__ == '__main__':
             "x_axis_label":"th x lbel",
             "title":"plot",
             "legends":{"manual_legends":legend_example},
+            "no_padding":True, #for all plots in page being its last
             "grid":{"which":'major',"axis":"both"},
             "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
         21:{"values":{
@@ -1603,6 +1608,7 @@ if __name__ == '__main__':
             "x_axis_label":"th x lbel",
             "title":"loglog and plot",
             "legends":{"manual_legends":legend_example},
+            "layout_padding":{"w_pad":0, "h_pad":2, "pad":5}, #inter plot in weight, inter plot in height, plot(s) to page for all plots in page being its last
             "grid":{"which":'major',"axis":"both"},
             "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
         4:{"values":{
