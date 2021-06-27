@@ -278,6 +278,7 @@ def prepare_plots(plot_data):
                       "dir_to_save",
                       "x_axis_label",
                       "y_axis_label",
+                      "twin_axis_label",
                       "title",
                       "legends",
                       "x_ticks",
@@ -304,164 +305,10 @@ def prepare_plots(plot_data):
         for key in keys_in_data:
             if key in plot_data[plot]:
                 prepared_plots[plot][key]=plot_data[plot][key]
-        
-        prepared_plots[plot]["plot_functions"]=[]
-        for cloud in plot_data[plot]["values"]:
-            ptype= plot_data[plot]["values"][cloud]["type"]
-            plot_func={"func_name":ptype, "legend":""}
-            
-            prepared_params=["type"]
-            
-            if ptype in ["plot","semilogx","semilogy","loglog"]:
-                if "x_values" in plot_data[plot]["values"][cloud]:
-                    plot_func["args"]=[plot_data[plot]["values"][cloud]["x_values"],plot_data[plot]["values"][cloud]["y_values"]]
-                else:
-                    plot_func["args"]=[plot_data[plot]["values"][cloud]["y_values"]]       
-                
-                prepared_params+=["x_values","y_values"]
-                
-            
-            if ptype=="polar":
-                plot_func["args"]=[plot_data[plot]["values"][cloud]["theta_values"],plot_data[plot]["values"][cloud]["r_values"]]
-                prepared_params+=["theta_values","r_values"]
-            
-            if ptype=="scatter":
-                plot_func["args"]=[plot_data[plot]["values"][cloud]["x_values"],plot_data[plot]["values"][cloud]["y_values"]]
-                #(x, y, s, c, marker, cmap, norm, vmin, vmax, alpha, linewidths, verts, edgecolors, hold, data)
-                prepared_params+=["x_values","y_values"]
-            
-            if ptype=="boxplot":
-                plot_func["args"]={"y_sets":plot_data[plot]["values"][cloud]["y_sets"],
-                                   "x_values":plot_data[plot]["values"][cloud]["x_values"],
-                                   "x_size":plot_data[plot]["values"][cloud]["x_size"]}
-                bpvalues=["y_sets","x_values","x_size"]
-                prepared_params+=bpvalues
-            
-            if ptype=="violinplot":
-                plot_func["args"]={"y_sets":plot_data[plot]["values"][cloud]["y_sets"],
-                                   "x_values":plot_data[plot]["values"][cloud]["x_values"],
-                                   "x_size":plot_data[plot]["values"][cloud]["x_size"]}
-                bpvalues=["y_sets","x_values","x_size"]
-                prepared_params+=bpvalues
 
-            if ptype=="vline":    
-                if "y_axis_prop_range" in plot_data[plot]["values"][cloud]:
-                    plot_func["args"]=[plot_data[plot]["values"][cloud]["x_pos"],
-                                       plot_data[plot]["values"][cloud]["y_axis_prop_range"][0],
-                                       plot_data[plot]["values"][cloud]["y_axis_prop_range"][1]]
-                else:
-                    plot_func["args"]=[plot_data[plot]["values"][cloud]["x_pos"]]
-                    
-                prepared_params+=["y_axis_prop_range","x_pos"]
-            
-            if ptype=="hline":    
-                if "x_axis_prop_range" in plot_data[plot]["values"][cloud]:
-                    plot_func["args"]=[plot_data[plot]["values"][cloud]["y_pos"],
-                                       plot_data[plot]["values"][cloud]["x_axis_prop_range"][0],
-                                       plot_data[plot]["values"][cloud]["x_axis_prop_range"][1]]
-                else:
-                    plot_func["args"]=[plot_data[plot]["values"][cloud]["y_pos"]]
-                    
-                prepared_params+=["x_axis_prop_range","y_pos"]
-                
-            if ptype=="vspan":    
-                if "y_axis_prop_range" in plot_data[plot]["values"][cloud]:
-                    plot_func["args"]=[plot_data[plot]["values"][cloud]["x_min"],
-                                       plot_data[plot]["values"][cloud]["x_max"],
-                                       plot_data[plot]["values"][cloud]["y_axis_prop_range"][0],
-                                       plot_data[plot]["values"][cloud]["y_axis_prop_range"][1]]
-                else:
-                    plot_func["args"]=[plot_data[plot]["values"][cloud]["x_min"],plot_data[plot]["values"][cloud]["x_max"]]
-                    
-                prepared_params+=["x_axis_prop_range","x_min", "x_max"]
-            
-            if ptype=="hspan":    
-                if "x_axis_prop_range" in plot_data[plot]["values"][cloud]:
-                    plot_func["args"]=[plot_data[plot]["values"][cloud]["y_min"],plot_data[plot]["values"][cloud]["y_max"],
-                                       plot_data[plot]["values"][cloud]["x_axis_prop_range"][0],
-                                       plot_data[plot]["values"][cloud]["x_axis_prop_range"][1]]
-                else:
-                    plot_func["args"]=[plot_data[plot]["values"][cloud]["y_min"],plot_data[plot]["values"][cloud]["y_max"]]
-                    
-                prepared_params+=["x_axis_prop_range","y_min","y_max"]
-            
-            if ptype=="annotate": 
-                plot_func["args"]=[plot_data[plot]["values"][cloud]["text"], plot_data[plot]["values"][cloud]["pos"]]
-                prepared_params+=["text","pos"]                
-            
-            if ptype=="imshow":   
-                plot_func["args"]=plot_data[plot]["values"][cloud]["matrix_colors"]
-                prepared_params+=["matrix_colors"]
-
-            if ptype=="pcolormesh":   
-                plot_func["args"]=plot_data[plot]["values"][cloud]["array"]
-                plot_func["cmap_list"]=plot_data[plot]["values"][cloud]["cmap_list"]
-                plot_func["xmin"]=plot_data[plot]["values"][cloud]["xmin"]
-                plot_func["xmax"]=plot_data[plot]["values"][cloud]["xmax"]
-                plot_func["ymin"]=plot_data[plot]["values"][cloud]["ymin"]
-                plot_func["ymax"]=plot_data[plot]["values"][cloud]["ymax"]
-                plot_func["vmin"]=plot_data[plot]["values"][cloud]["vmin"]
-                plot_func["vmax"]=plot_data[plot]["values"][cloud]["vmax"]
-                prepared_params+=["array"]                
-
-                         
-            
-            if ptype=="bar":   
-                plot_func["args"]=[plot_data[plot]["values"][cloud]["center"],
-                                   plot_data[plot]["values"][cloud]["height"],
-                                   plot_data[plot]["values"][cloud]["width"],
-                                   plot_data[plot]["values"][cloud]["bottom"] if "bottom" in plot_data[plot]["values"][cloud] else 0]
-#                 plot_func["args"]={"left":plot_data[plot]["values"][cloud]["left"],
-#                                    "height":plot_data[plot]["values"][cloud]["height"],
-#                                    "width":plot_data[plot]["values"][cloud]["width"],
-#                                    "bottom":plot_data[plot]["values"][cloud]["bottom"] if "bottom" in plot_data[plot]["values"][cloud] else 0}
-                prepared_params+=["center","height","width","bottom"]
-                
-            if ptype=="text":
-                plot_func["args"]=[plot_data[plot]["values"][cloud]["x"],
-                                   plot_data[plot]["values"][cloud]["y"],
-                                   plot_data[plot]["values"][cloud]["text"]]
-                
-                prepared_params+=["x","y","text"]
-                
-                
-            if ptype=="table":
-                                
-                plot_func["cellText"]=plot_data[plot]["values"][cloud]["matrix"]
-                plot_func["rowLabels"]=plot_data[plot]["values"][cloud]["rows"]
-                plot_func["colLabels"]=plot_data[plot]["values"][cloud]["cols"]
-                plot_func["args"]={"nb_rows":len(plot_func["rowLabels"]),
-                                   "nb_cols":len(plot_func["colLabels"])}                   
-                
-                if "line_width_prop" in plot_data[plot]["values"][cloud]:
-                    nb_cols=plot_func["args"]["nb_cols"]                    
-                    plot_func["colWidths"]=[1.*plot_data[plot]["values"][cloud]["line_width_prop"]/(nb_cols)]*nb_cols
-#                 if "colWidths" in plot_data[plot]["values"][cloud]:
-#                     plot_func["colWidths"]=plot_data[plot]["values"][cloud]["colWidths"]
-                
-                if "col_height_prop" in plot_data[plot]["values"][cloud]:
-                    nb_rows=plot_func["args"]["nb_rows"]                    
-                    plot_func["args"]["rowHeights"]=[1.*plot_data[plot]["values"][cloud]["col_height_prop"]/(nb_rows)]*nb_rows
-                if "rowHeights" in plot_data[plot]["values"][cloud]:
-                    plot_func["args"]["rowHeights"]=plot_data[plot]["values"][cloud]["rowHeights"]
-                
-                if "fontsize" in plot_data[plot]["values"][cloud]:
-                    plot_func["args"]["fontsize"]=plot_data[plot]["values"][cloud]["fontsize"]
-                    
-                if "label_params" in plot_data[plot]["values"][cloud]:
-                    plot_func["args"]["label_params"]=plot_data[plot]["values"][cloud]["label_params"]
-                
-                prepared_params+=["rows","cols","matrix","line_width_prop","col_height_prop","fontsize", "label_params", "rowHeights"]
-                
-                                                
-                        
-            for key in plot_data[plot]["values"][cloud]:
-                if key not in prepared_params:
-                    plot_func[key]=plot_data[plot]["values"][cloud][key]
-                        
-            prepared_plots[plot]["plot_functions"].append(plot_func)
-            del plot_func
-                                
+        prepared_plots[plot]["plot_functions"]=prepare_idv_values(plot_data[plot]["values"])
+        if "twinx_values" in plot_data[plot]:
+            prepared_plots[plot]["twinx_plot_functions"]=prepare_idv_values(plot_data[plot]["twinx_values"])
         
         prepared+=1
         if (prepared%50==0):
@@ -469,6 +316,563 @@ def prepare_plots(plot_data):
                         
             
     return prepared_plots
+
+def prepare_idv_values(vals_dict):
+    plot_functions_list=[]
+    for cloud in vals_dict:
+        ptype= vals_dict[cloud]["type"]
+        plot_func={"func_name":ptype, "legend":""}
+        
+        prepared_params=["type"]
+        
+        if ptype in ["plot","semilogx","semilogy","loglog"]:
+            if "x_values" in vals_dict[cloud]:
+                plot_func["args"]=[vals_dict[cloud]["x_values"],vals_dict[cloud]["y_values"]]
+            else:
+                plot_func["args"]=[vals_dict[cloud]["y_values"]]       
+            
+            prepared_params+=["x_values","y_values"]
+            
+        
+        if ptype=="polar":
+            plot_func["args"]=[vals_dict[cloud]["theta_values"],vals_dict[cloud]["r_values"]]
+            prepared_params+=["theta_values","r_values"]
+        
+        if ptype=="scatter":
+            plot_func["args"]=[vals_dict[cloud]["x_values"],vals_dict[cloud]["y_values"]]
+            #(x, y, s, c, marker, cmap, norm, vmin, vmax, alpha, linewidths, verts, edgecolors, hold, data)
+            prepared_params+=["x_values","y_values"]
+        
+        if ptype=="boxplot":
+            plot_func["args"]={"y_sets":vals_dict[cloud]["y_sets"],
+                               "x_values":vals_dict[cloud]["x_values"],
+                               "x_size":vals_dict[cloud]["x_size"]}
+            bpvalues=["y_sets","x_values","x_size"]
+            prepared_params+=bpvalues
+        
+        if ptype=="violinplot":
+            plot_func["args"]={"y_sets":vals_dict[cloud]["y_sets"],
+                               "x_values":vals_dict[cloud]["x_values"],
+                               "x_size":vals_dict[cloud]["x_size"]}
+            bpvalues=["y_sets","x_values","x_size"]
+            prepared_params+=bpvalues
+
+        if ptype=="vline":    
+            if "y_axis_prop_range" in vals_dict[cloud]:
+                plot_func["args"]=[vals_dict[cloud]["x_pos"],
+                                   vals_dict[cloud]["y_axis_prop_range"][0],
+                                   vals_dict[cloud]["y_axis_prop_range"][1]]
+            else:
+                plot_func["args"]=[vals_dict[cloud]["x_pos"]]
+                
+            prepared_params+=["y_axis_prop_range","x_pos"]
+        
+        if ptype=="hline":    
+            if "x_axis_prop_range" in vals_dict[cloud]:
+                plot_func["args"]=[vals_dict[cloud]["y_pos"],
+                                   vals_dict[cloud]["x_axis_prop_range"][0],
+                                   vals_dict[cloud]["x_axis_prop_range"][1]]
+            else:
+                plot_func["args"]=[vals_dict[cloud]["y_pos"]]
+                
+            prepared_params+=["x_axis_prop_range","y_pos"]
+            
+        if ptype=="vspan":    
+            if "y_axis_prop_range" in vals_dict[cloud]:
+                plot_func["args"]=[vals_dict[cloud]["x_min"],
+                                   vals_dict[cloud]["x_max"],
+                                   vals_dict[cloud]["y_axis_prop_range"][0],
+                                   vals_dict[cloud]["y_axis_prop_range"][1]]
+            else:
+                plot_func["args"]=[vals_dict[cloud]["x_min"],vals_dict[cloud]["x_max"]]
+                
+            prepared_params+=["x_axis_prop_range","x_min", "x_max"]
+        
+        if ptype=="hspan":    
+            if "x_axis_prop_range" in vals_dict[cloud]:
+                plot_func["args"]=[vals_dict[cloud]["y_min"],vals_dict[cloud]["y_max"],
+                                   vals_dict[cloud]["x_axis_prop_range"][0],
+                                   vals_dict[cloud]["x_axis_prop_range"][1]]
+            else:
+                plot_func["args"]=[vals_dict[cloud]["y_min"],vals_dict[cloud]["y_max"]]
+                
+            prepared_params+=["x_axis_prop_range","y_min","y_max"]
+        
+        if ptype=="annotate": 
+            plot_func["args"]=[vals_dict[cloud]["text"], vals_dict[cloud]["pos"]]
+            prepared_params+=["text","pos"]                
+        
+        if ptype=="imshow":   
+            plot_func["args"]=vals_dict[cloud]["matrix_colors"]
+            prepared_params+=["matrix_colors"]
+
+        if ptype=="pcolormesh":   
+            plot_func["args"]=vals_dict[cloud]["array"]
+            plot_func["cmap_list"]=vals_dict[cloud]["cmap_list"]
+            plot_func["xmin"]=vals_dict[cloud]["xmin"]
+            plot_func["xmax"]=vals_dict[cloud]["xmax"]
+            plot_func["ymin"]=vals_dict[cloud]["ymin"]
+            plot_func["ymax"]=vals_dict[cloud]["ymax"]
+            plot_func["vmin"]=vals_dict[cloud]["vmin"]
+            plot_func["vmax"]=vals_dict[cloud]["vmax"]
+            prepared_params+=["array"]                
+
+                     
+        
+        if ptype=="bar":   
+            plot_func["args"]=[vals_dict[cloud]["center"],
+                               vals_dict[cloud]["height"],
+                               vals_dict[cloud]["width"],
+                               vals_dict[cloud]["bottom"] if "bottom" in vals_dict[cloud] else 0]
+#                 plot_func["args"]={"left":vals_dict[cloud]["left"],
+#                                    "height":vals_dict[cloud]["height"],
+#                                    "width":vals_dict[cloud]["width"],
+#                                    "bottom":vals_dict[cloud]["bottom"] if "bottom" in vals_dict[cloud] else 0}
+            prepared_params+=["center","height","width","bottom"]
+            
+        if ptype=="text":
+            plot_func["args"]=[vals_dict[cloud]["x"],
+                               vals_dict[cloud]["y"],
+                               vals_dict[cloud]["text"]]
+            
+            prepared_params+=["x","y","text"]
+            
+            
+        if ptype=="table":
+                            
+            plot_func["cellText"]=vals_dict[cloud]["matrix"]
+            plot_func["rowLabels"]=vals_dict[cloud]["rows"]
+            plot_func["colLabels"]=vals_dict[cloud]["cols"]
+            plot_func["args"]={"nb_rows":len(plot_func["rowLabels"]),
+                               "nb_cols":len(plot_func["colLabels"])}                   
+            
+            if "line_width_prop" in vals_dict[cloud]:
+                nb_cols=plot_func["args"]["nb_cols"]                    
+                plot_func["colWidths"]=[1.*vals_dict[cloud]["line_width_prop"]/(nb_cols)]*nb_cols
+#                 if "colWidths" in vals_dict[cloud]:
+#                     plot_func["colWidths"]=vals_dict[cloud]["colWidths"]
+            
+            if "col_height_prop" in vals_dict[cloud]:
+                nb_rows=plot_func["args"]["nb_rows"]                    
+                plot_func["args"]["rowHeights"]=[1.*vals_dict[cloud]["col_height_prop"]/(nb_rows)]*nb_rows
+            if "rowHeights" in vals_dict[cloud]:
+                plot_func["args"]["rowHeights"]=vals_dict[cloud]["rowHeights"]
+            
+            if "fontsize" in vals_dict[cloud]:
+                plot_func["args"]["fontsize"]=vals_dict[cloud]["fontsize"]
+                
+            if "label_params" in vals_dict[cloud]:
+                plot_func["args"]["label_params"]=vals_dict[cloud]["label_params"]
+            
+            prepared_params+=["rows","cols","matrix","line_width_prop","col_height_prop","fontsize", "label_params", "rowHeights"]
+            
+                                            
+                    
+        for key in vals_dict[cloud]:
+            if key not in prepared_params:
+                plot_func[key]=vals_dict[cloud][key]
+                        
+        plot_functions_list.append(plot_func)
+        del plot_func
+
+    return(plot_functions_list)
+
+def plot_functions(plot_functions,colors,zeplt,should_be_legended=False):
+    func_id=0
+    has_box_plots=False
+    other_legend_handles=[]
+
+    for plot_func in plot_functions:
+        kawargs={"label":plot_func["legend"]}
+        
+        if "color_index" in plot_func: 
+            kawargs["color"]=colors[plot_func["color_index"]]
+
+        for key in plot_func:
+            if key not in ["color_index","args","func_name","legend"]:
+                kawargs[key]=plot_func[key]
+        for key in conf.plot_params[plot_func["func_name"]]:
+            if key not in kawargs:
+                kawargs[key]=conf.plot_params[plot_func["func_name"]][key]
+        
+        if plot_func["func_name"]=="bar":
+            zeplt.bar(*plot_func["args"], **kawargs)
+        
+        if plot_func["func_name"]=="plot":
+            zeplt.plot(*plot_func["args"], **kawargs)
+            #plt.semilogx(*plot_func["args"], **kawargs)
+        
+        if plot_func["func_name"]=="polar":
+            plt.polar(*plot_func["args"], **kawargs)
+        
+        if plot_func["func_name"]=="semilogx":
+            zeplt.semilogx(*plot_func["args"], **kawargs)
+        
+        if plot_func["func_name"]=="semilogy":
+            zeplt.semilogy(*plot_func["args"], **kawargs)
+        
+        if plot_func["func_name"]=="loglog":
+            zeplt.loglog(*plot_func["args"], **kawargs)
+            
+        if plot_func["func_name"]=="annotate":
+            zeplt.annotate(*plot_func["args"], **kawargs)
+            if 'label' in kawargs and len(kawargs['label'])>0:
+                manual_label=mpl_lines.Line2D(
+                            [],[],color=kawargs["color"] if "color" in kawargs else 'k',
+                            linestyle='-', fillstyle='none',mew=0.6,ms=6,label=kawargs['label'])
+                other_legend_handles.append(manual_label)
+        
+        if plot_func["func_name"]=="table":
+            the_table=zeplt.table(**kawargs)
+            
+            nb_cols=plot_func["args"]["nb_cols"]
+            nb_rows=plot_func["args"]["nb_rows"]
+            
+            for key, cell in the_table.get_celld().items():
+                if key[0] in range(1,nb_rows+1) and key[1] in range(nb_cols):
+                    if "rowHeights" in plot_func["args"]:
+                        cell.set_height(plot_func["args"]["rowHeights"][key[0]-1])
+                    if "fontsize" in plot_func["args"]:
+                        cell._text.set_fontsize(plot_func["args"]["fontsize"])
+                    if "color" in kawargs:
+                        cell._text.set_color(kawargs["color"])                            
+                 
+                if key[0] in range(1,nb_rows+1) and key[1] == -1:
+                    cell._text.set_text(' '+cell._text.get_text()+' ')
+                    if "rowHeights" in plot_func["args"]:
+                        cell.set_height(plot_func["args"]["rowHeights"][key[0]-1])
+                    if "label_params" in plot_func["args"]:
+                        if "edges_off" in plot_func["args"]["label_params"] and plot_func["args"]["label_params"]["edges_off"]:
+                            cell.set_linewidth(0)
+                if key[0] == 0: 
+                    if "label_params" in plot_func["args"]:
+                        if "ylab_height_prop" in plot_func["args"]["label_params"]:
+                            cell.set_height(plot_func["args"]["label_params"]["ylab_height_prop"])
+                        if "edges_off" in plot_func["args"]["label_params"] and plot_func["args"]["label_params"]["edges_off"]:
+                            cell.set_linewidth(0)
+
+        
+        if plot_func["func_name"]=="text":
+            zeplt.text(*plot_func["args"], **kawargs)
+            
+        if plot_func["func_name"]=="vline":
+            zeplt.axvline(*plot_func["args"],**kawargs)
+                
+        if plot_func["func_name"]=="hline":
+            zeplt.axhline(*plot_func["args"],**kawargs)
+                
+        if plot_func["func_name"]=="vspan":
+            zeplt.axvspan(*plot_func["args"],**kawargs)
+                
+        if plot_func["func_name"]=="hspan":
+            zeplt.axhspan(*plot_func["args"],**kawargs)
+                
+        if plot_func["func_name"]=="scatter":
+            zeplt.scatter(*plot_func["args"], **kawargs)
+        
+        if plot_func["func_name"]=="imshow":
+            zeplt.imshow(plot_func["args"], **kawargs)
+
+        if plot_func["func_name"]=="pcolormesh":
+            xmin=plot_func["xmin"]
+            xmax=plot_func["xmax"]
+            ymin=plot_func["ymin"]
+            ymax=plot_func["ymax"]
+            vmin=plot_func["vmin"]
+            vmax=plot_func["vmax"]
+            xstart=np.pi/180*xmin
+            xstop=np.pi/180*xmax
+            xrange=xmax-xmin
+            ystart=np.pi/180*ymin
+            ystop=np.pi/180*ymax
+            yrange=ymax-ymin
+            lon = np.linspace(xstart, xstop, xrange+1)
+            lat = np.linspace(ystart, ystop, yrange+1)
+            # lon = np.linspace(-np.pi, np.pi,317)
+            # lat = np.linspace(-np.pi/6., np.pi/6.,63)
+            Lon,Lat = np.meshgrid(lon,lat)
+            print(plot_func["cmap_list"])
+            color_list=plot_func["cmap_list"]
+            zeplt.pcolormesh(
+                Lon,
+                Lat,
+                plot_func["args"],
+                cmap=mpl_colors.ListedColormap(color_list),
+                vmin=vmin,vmax=vmax,
+                rasterized=True)
+                #edgecolor='none')#cmap=plt.cm.jet)
+
+            
+        my_box_plot={}
+        if plot_func["func_name"]=="boxplot":
+            has_box_plots=kawargs["manage_ticks"] if "manage_ticks" in kawargs else True
+            my_box_plot[func_id]=zeplt.boxplot(plot_func["args"]["y_sets"], 
+                positions = plot_func["args"]["x_values"],
+                sym='o',#'bx',
+                #whis = 1,#default 1.5
+                whis=kawargs["whis"] if "whis" in kawargs else (0,100),
+                widths=[plot_func["args"]["x_size"]]*len(plot_func["args"]["x_values"]), #(4.2, 4.2),
+                showfliers=kawargs["showfliers"] if "showfliers" in kawargs else False,
+                showcaps=kawargs["showcaps"] if "showcaps" in kawargs else True,
+                patch_artist = True,
+                manage_ticks=kawargs["manage_ticks"] if "manage_ticks" in kawargs else True)
+            
+
+            # print(my_box_plot[func_id].keys())#dict_keys(['whiskers', 'caps', 'boxes', 'medians', 'fliers', 'means'])
+            not_legended=True
+            for element in my_box_plot[func_id]['medians']:
+                if should_be_legended and not_legended:
+                    element.set_label(plot_func["legend"])# label
+                    not_legended=False
+                if "color" in kawargs:
+                    element.set_color(kawargs["color"])#conf.colors[plot_func["color_index"]]
+#                    element.set_linestyle('solid')#('dashed')
+                element.set_linestyle(kawargs["linestyle"])#('dashed')
+                element.set_linewidth(kawargs["linewidth"])
+
+            elt_id=0
+            for element in my_box_plot[func_id]['boxes']:
+                if "color" in kawargs:
+                    element.set_edgecolor(kawargs["color"])
+                element.set_facecolor(kawargs["fill_color"])
+                if "box_edge_width" in kawargs:
+                    element.set_linewidth(kawargs["box_edge_width"])
+                else:
+                    element.set_linewidth(kawargs["linewidth"])
+                # element.set_linestyle('solid')#('dashed')
+                element.set_linestyle(kawargs["linestyle"])#('dashed')
+                element.set_fill(kawargs["fill"])
+                #element.set_hatch('/')
+                if "fill_map" in kawargs:
+                    # element.set_fill(False)
+                    vert=element.get_path().vertices
+
+                    if "cmap_list" in kawargs:
+                        nb_colors=1+len(kawargs["cmap_list"])
+                        colormap=mpl_colors.ListedColormap(kawargs["cmap_list"])
+                    else:
+                        nb_colors=256
+                        colormap=plt.cm.viridis
+
+                    
+                    if "clip_on_box" in kawargs:
+                        
+                        extent=[vert[0][0],vert[1][0],kawargs["fill_map"][0],kawargs["fill_map"][1]]
+                        # gradient = np.linspace(0, 1, len(kawargs["cmap_list"]))
+                        # gradient = np.vstack((gradient, gradient)).T
+                        # imb = plt.imshow(gradient, cmap=mpl_colors.ListedColormap(kawargs["cmap_list"]),#plt.cm.viridis,
+                        #                origin='lower', extent=extent,
+                        #                clip_path=element, clip_on=True)
+                        # imb.set_clip_path(element)
+                            
+                        imb = plt.pcolormesh(
+                            (extent[0], extent[1]), 
+                            np.linspace(extent[2],extent[3],nb_colors),
+                            np.linspace((0,0),(nb_colors-1,nb_colors-1),nb_colors),
+                            cmap=colormap,
+                            clip_path=element, clip_on=True,rasterized=True)
+
+                    else:
+
+                        extent=[vert[0][0],vert[1][0],min(plot_func["args"]["y_sets"][elt_id]),max(plot_func["args"]["y_sets"][elt_id])]
+
+                        pmin=(extent[2]-kawargs["fill_map"][0])/(kawargs["fill_map"][1]-kawargs["fill_map"][0])*nb_colors
+                        pmax=(extent[3]-kawargs["fill_map"][0])/(kawargs["fill_map"][1]-kawargs["fill_map"][0])*nb_colors
+
+                        imb = plt.pcolormesh(
+                            (extent[0], extent[1]), #X
+                            np.linspace(extent[2],extent[3],nb_colors),#Y
+                            np.linspace((pmin,pmin),(pmax,pmax),nb_colors), # color grid
+                            vmin=0,
+                            vmax=nb_colors-1,
+                            cmap=colormap, 
+                            rasterized=True
+                           )
+
+                    elt_id+=1
+
+
+
+
+            for element in my_box_plot[func_id]['whiskers']:
+                if "color" in kawargs:
+                    element.set_color(kawargs["color"])#conf.colors[plot_func["color_index"]]
+                element.set_linewidth(kawargs["linewidth"])
+                element.set_linestyle(kawargs["linestyle"])#('dashed')
+
+            for element in my_box_plot[func_id]['caps']:
+                if "color" in kawargs:
+                    element.set_color(kawargs["color"])#(colors[sheet_names.index(sheet)])#('blue')
+                element.set_linewidth(kawargs["linewidth"])
+                element.set_linestyle(kawargs["linestyle"])#('dashed')
+
+            for element in my_box_plot[func_id]['fliers']: # https://stackoverflow.com/questions/32480988/matplotlib-fliers-in-boxplot-object-not-setting-correctly
+                element.set_markerfacecolor("None")#(colors[sheet_names.index(sheet)])#('blue')
+                element.set_alpha(0.6)
+                # element.set_color("None")#(colors[sheet_names.index(sheet)])#('blue')
+                if "color" in kawargs:
+                    element.set_markeredgecolor(kawargs["color"])#(colors[sheet_names.index(sheet)])#('blue')
+                else:
+                    element.set_markeredgecolor("purple")#(colors[sheet_names.index(sheet)])#('blue')
+
+                element.set_markeredgewidth(kawargs["linewidth"])
+                element.set_markersize(kawargs["fliersize"] if "fliersize" in kawargs else 12*plot_func["args"]["x_size"])#('dashed')   
+                # element.set_marker('d')#  overrides sym
+
+
+        if plot_func["func_name"]=="violinplot":
+            considered_widths=[plot_func["args"]["x_size"]]*len(plot_func["args"]["x_values"])
+
+            if "custom_x_size" in kawargs:
+                maxwidth=plot_func["args"]["x_size"]
+                dyel=kawargs["custom_x_size"]["delta_y"]
+
+                mdw=0
+                wimax=[]
+                for yes in plot_func["args"]["y_sets"]:
+                    ywidth=0
+                    current_y_range=min(yes)
+                    ymin=min(yes)
+                    ymax=max(yes)
+                    rows={i:[] for i in range(int((ymax-ymin)/dyel)+1)}
+                    for i in sorted(yes):
+                        rows[int((i-ymin)/dyel)].append(i)
+
+                    ywidth=max(len(rows[i]) for i in rows) #in dots
+                    wimax.append(ywidth)
+                    mdw=max(mdw,ywidth)
+
+                dxel=maxwidth/mdw
+
+                considered_widths=[j*dxel for j in wimax]
+
+            if "scattered" in kawargs:
+                if not ("custom_x_size" in kawargs):
+                    dyel=1
+                    dxel=plot_func["args"]["x_size"]/10
+
+                xind=0
+                for yes in plot_func["args"]["y_sets"]:
+                    xind+=1
+
+                    ymin=min(yes)
+                    ymax=max(yes)
+                    rows={i:[] for i in range(int((ymax-ymin)/dyel)+1)}
+                    for i in sorted(yes):
+                        rows[int((i-ymin)/dyel)].append(i)
+
+                    xax=[]
+                    for row in rows:
+                        nel=len(rows[row])
+                        for ptind in range(nel):
+                            xval=plot_func["args"]["x_values"][xind-1]+(ptind*dxel - dxel*nel/2 + dxel - ((nel)%2)*dxel/2 - ((nel+1)%2)*dxel/2 )
+                            xax.append(xval)
+
+                    plt.scatter(xax,sorted(yes), zorder=10, **(kawargs["scattered"]))
+
+
+
+            violin_func=zeplt.violinplot(plot_func["args"]["y_sets"], 
+                positions = plot_func["args"]["x_values"],
+                widths=considered_widths,
+                showmeans=True,
+                showmedians=True,
+                showextrema=True,
+                bw_method=kawargs["bw_method"] if "bw_method" in kawargs else 'scott',
+                ) #(4.2, 4.2),
+            
+            
+            # print(violin_func.keys())#dict_keys(['bodies', 'cmeans', 'cmaxes', 'cmins', 'cbars', 'cmedians'])
+            not_legended=True
+            median_lines=violin_func['cmedians']
+            if should_be_legended and not_legended:
+                median_lines.set_label(plot_func["legend"])# label
+                not_legended=False
+            if "color" in kawargs:
+                median_lines.set_color(kawargs["color"])
+#                    element.set_linestyle('solid')#('dashed')
+            median_lines.set_linestyle(kawargs["linestyle"])#('dashed')
+            median_lines.set_linewidth(kawargs["linewidth"])
+            cmin_lines=violin_func['cmins']
+            if "color" in kawargs:
+                cmin_lines.set_color(kawargs["color"])
+            cmin_lines.set_linewidth(kawargs["linewidth"])
+            cmin_lines.set_linestyle(kawargs["linestyle"])#('dashed')
+
+            cbars_lines=violin_func['cbars']
+            if "color" in kawargs:
+                cbars_lines.set_color(kawargs["color"])
+            cbars_lines.set_linewidth(kawargs["linewidth"])
+            cbars_lines.set_linestyle(kawargs["linestyle"])#('dashed')
+
+            cmeans_lines=violin_func['cmeans'] 
+            cmeans_lines.set_alpha(0.6)
+            if "color" in kawargs:
+                cmeans_lines.set_color(kawargs["color"])#(colors[sheet_names.index(sheet)])#('blue')
+
+            elt_id=0
+            for element in violin_func['bodies']:
+                element.set_facecolor(kawargs["fill_color"])
+                if "violin_edge_width" in kawargs:
+                    element.set_linewidth(kawargs["violin_edge_width"])
+                else:
+                    element.set_linewidth(kawargs["linewidth"])
+                # element.set_linestyle('solid')#('dashed')
+                element.set_linestyle(kawargs["linestyle"])#('dashed')
+
+                if not kawargs["fill"]:
+                    element.set_facecolor('white')
+                    # element.set_alpha(0)
+
+                if "color" in kawargs:
+                    element.set_edgecolor(kawargs["color"])
+
+                if "fill_map" in kawargs:
+                    vert=element.get_paths()[0].vertices
+
+                    if "cmap_list" in kawargs:
+                        nb_colors=1+len(kawargs["cmap_list"])
+                        colormap=mpl_colors.ListedColormap(kawargs["cmap_list"])
+                    else:
+                        nb_colors=256
+                        colormap=plt.cm.viridis
+
+                    patch_edgecolor=kawargs["color"] if "color" in kawargs else 'k'
+                    patch=PathPatch(element.get_paths()[0], facecolor='none', edgecolor=patch_edgecolor, linestyle=kawargs["linestyle"])
+                    plt.gca().add_patch(patch)
+
+                    
+                    if not ("indep_violin_fill" in kawargs):
+                        extent=[min(vert[:,0]), max(vert[:,0]),kawargs["fill_map"][0],kawargs["fill_map"][1]]
+
+                        imb = plt.pcolormesh(
+                            (extent[0], extent[1]), 
+                            np.linspace(extent[2],extent[3],nb_colors),
+                            np.linspace((0,0),(nb_colors-1,nb_colors-1),nb_colors),
+                            cmap=colormap,
+                            clip_path=patch, clip_on=True,rasterized=True) #element.get_transformed_clip_path_and_affine()
+
+                        imb.set_clip_path(patch)
+                    else:
+                        extent=[min(vert[:,0]), max(vert[:,0]),min(plot_func["args"]["y_sets"][elt_id]),max(plot_func["args"]["y_sets"][elt_id])]
+
+                        imb = plt.pcolormesh(
+                            (extent[0], extent[1]), #X
+                            np.linspace(extent[2],extent[3],nb_colors),#Y
+                            np.linspace((0,0),(nb_colors-1,nb_colors-1),nb_colors),# color grid       
+                            vmin=0,
+                            vmax=nb_colors-1,
+                            cmap=colormap, 
+                            clip_path=patch, clip_on=True,
+                            rasterized=True
+                           )
+                        imb.set_clip_path(patch)
+
+                elt_id+=1
+        func_id+=1
+
+    return(func_id, has_box_plots, other_legend_handles)
+
 
 def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=False, in_ax=None,user_defined_dpi=conf.dpi):
     #figs
@@ -517,396 +921,39 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
         else:
             colors=conf.colors
         
-                
-        func_id=0
-        has_box_plots=False
-        for plot_func in prepared_plots[plot]["plot_functions"]:
-            kawargs={"label":plot_func["legend"]}
-            
-            if "color_index" in plot_func: 
-                kawargs["color"]=colors[plot_func["color_index"]]
 
-            for key in plot_func:
-                if key not in ["color_index","args","func_name","legend"]:
-                    kawargs[key]=plot_func[key]
-            for key in conf.plot_params[plot_func["func_name"]]:
-                if key not in kawargs:
-                    kawargs[key]=conf.plot_params[plot_func["func_name"]][key]
-            
-            if plot_func["func_name"]=="bar":
-                zeplt.bar(*plot_func["args"], **kawargs)
-            
-            if plot_func["func_name"]=="plot":
-                zeplt.plot(*plot_func["args"], **kawargs)
-                #plt.semilogx(*plot_func["args"], **kawargs)
-            
-            if plot_func["func_name"]=="polar":
-                plt.polar(*plot_func["args"], **kawargs)
-            
-            if plot_func["func_name"]=="semilogx":
-                zeplt.semilogx(*plot_func["args"], **kawargs)
-            
-            if plot_func["func_name"]=="semilogy":
-                zeplt.semilogy(*plot_func["args"], **kawargs)
-            
-            if plot_func["func_name"]=="loglog":
-                zeplt.loglog(*plot_func["args"], **kawargs)
-                
-            if plot_func["func_name"]=="annotate":
-                zeplt.annotate(*plot_func["args"], **kawargs)
-                if 'label' in kawargs and len(kawargs['label'])>0:
-                    manual_label=mpl_lines.Line2D(
-                                [],[],color=kawargs["color"] if "color" in kawargs else 'k',
-                                linestyle='-', fillstyle='none',mew=0.6,ms=6,label=kawargs['label'])
-                    other_legend_handles.append(manual_label)
-            
-            if plot_func["func_name"]=="table":
-                the_table=zeplt.table(**kawargs)
-                
-                nb_cols=plot_func["args"]["nb_cols"]
-                nb_rows=plot_func["args"]["nb_rows"]
-                
-                for key, cell in the_table.get_celld().items():
-                    if key[0] in range(1,nb_rows+1) and key[1] in range(nb_cols):
-                        if "rowHeights" in plot_func["args"]:
-                            cell.set_height(plot_func["args"]["rowHeights"][key[0]-1])
-                        if "fontsize" in plot_func["args"]:
-                            cell._text.set_fontsize(plot_func["args"]["fontsize"])
-                        if "color" in kawargs:
-                            cell._text.set_color(kawargs["color"])                            
-                     
-                    if key[0] in range(1,nb_rows+1) and key[1] == -1:
-                        cell._text.set_text(' '+cell._text.get_text()+' ')
-                        if "rowHeights" in plot_func["args"]:
-                            cell.set_height(plot_func["args"]["rowHeights"][key[0]-1])
-                        if "label_params" in plot_func["args"]:
-                            if "edges_off" in plot_func["args"]["label_params"] and plot_func["args"]["label_params"]["edges_off"]:
-                                cell.set_linewidth(0)
-                    if key[0] == 0: 
-                        if "label_params" in plot_func["args"]:
-                            if "ylab_height_prop" in plot_func["args"]["label_params"]:
-                                cell.set_height(plot_func["args"]["label_params"]["ylab_height_prop"])
-                            if "edges_off" in plot_func["args"]["label_params"] and plot_func["args"]["label_params"]["edges_off"]:
-                                cell.set_linewidth(0)
+        should_be_legended="legends" in prepared_plots[plot]
 
-            
-            if plot_func["func_name"]=="text":
-                zeplt.text(*plot_func["args"], **kawargs)
-                
-            if plot_func["func_name"]=="vline":
-                zeplt.axvline(*plot_func["args"],**kawargs)
-                    
-            if plot_func["func_name"]=="hline":
-                zeplt.axhline(*plot_func["args"],**kawargs)
-                    
-            if plot_func["func_name"]=="vspan":
-                zeplt.axvspan(*plot_func["args"],**kawargs)
-                    
-            if plot_func["func_name"]=="hspan":
-                zeplt.axhspan(*plot_func["args"],**kawargs)
-                    
-            if plot_func["func_name"]=="scatter":
-                zeplt.scatter(*plot_func["args"], **kawargs)
-            
-            if plot_func["func_name"]=="imshow":
-                zeplt.imshow(plot_func["args"], **kawargs)
+        func_id, has_box_plots, other_legend_handles = plot_functions(prepared_plots[plot]["plot_functions"],colors,zeplt,should_be_legended=should_be_legended)
 
-            if plot_func["func_name"]=="pcolormesh":
-                xmin=plot_func["xmin"]
-                xmax=plot_func["xmax"]
-                ymin=plot_func["ymin"]
-                ymax=plot_func["ymax"]
-                vmin=plot_func["vmin"]
-                vmax=plot_func["vmax"]
-                xstart=np.pi/180*xmin
-                xstop=np.pi/180*xmax
-                xrange=xmax-xmin
-                ystart=np.pi/180*ymin
-                ystop=np.pi/180*ymax
-                yrange=ymax-ymin
-                lon = np.linspace(xstart, xstop, xrange+1)
-                lat = np.linspace(ystart, ystop, yrange+1)
-                # lon = np.linspace(-np.pi, np.pi,317)
-                # lat = np.linspace(-np.pi/6., np.pi/6.,63)
-                Lon,Lat = np.meshgrid(lon,lat)
-                print(plot_func["cmap_list"])
-                color_list=plot_func["cmap_list"]
-                zeplt.pcolormesh(
-                    Lon,
-                    Lat,
-                    plot_func["args"],
-                    cmap=mpl_colors.ListedColormap(color_list),
-                    vmin=vmin,vmax=vmax,
-                    rasterized=True)
-                    #edgecolor='none')#cmap=plt.cm.jet)
+        if "twinx_plot_functions" in prepared_plots[plot]:
 
-                
-            my_box_plot={}
-            if plot_func["func_name"]=="boxplot":
-                has_box_plots=kawargs["manage_ticks"] if "manage_ticks" in kawargs else True
-                my_box_plot[func_id]=zeplt.boxplot(plot_func["args"]["y_sets"], 
-                    positions = plot_func["args"]["x_values"],
-                    sym='o',#'bx',
-                    #whis = 1,#default 1.5
-                    whis=kawargs["whis"] if "whis" in kawargs else (0,100),
-                    widths=[plot_func["args"]["x_size"]]*len(plot_func["args"]["x_values"]), #(4.2, 4.2),
-                    showfliers=kawargs["showfliers"] if "showfliers" in kawargs else False,
-                    showcaps=kawargs["showcaps"] if "showcaps" in kawargs else True,
-                    patch_artist = True,
-                    manage_ticks=kawargs["manage_ticks"] if "manage_ticks" in kawargs else True)
-                
-                
-                # print(my_box_plot[func_id].keys())#dict_keys(['whiskers', 'caps', 'boxes', 'medians', 'fliers', 'means'])
-                not_legended=True
-                for element in my_box_plot[func_id]['medians']:
-                    if "legends" in prepared_plots[plot] and not_legended:
-                        element.set_label(plot_func["legend"])# label
-                        not_legended=False
-                    if "color" in kawargs:
-                        element.set_color(kawargs["color"])#conf.colors[plot_func["color_index"]]
-#                    element.set_linestyle('solid')#('dashed')
-                    element.set_linestyle(kawargs["linestyle"])#('dashed')
-                    element.set_linewidth(kawargs["linewidth"])
+            # twinx_ax.tick_params(
+            #     axis='y',          # changes apply to the y-axis
+            #     which='both',      # both major and minor ticks are affected
+            #     # pad=conf.title_and_axes_labelpad,
+            #     labelsize=60) # labels along the bottom edge are off
+            #     # labelsize=conf.ticks_labels_font_size+extra_ytick_label_size) # labels along the bottom edge are off
 
-                elt_id=0
-                for element in my_box_plot[func_id]['boxes']:
-                    if "color" in kawargs:
-                        element.set_edgecolor(kawargs["color"])
-                    element.set_facecolor(kawargs["fill_color"])
-                    if "box_edge_width" in kawargs:
-                        element.set_linewidth(kawargs["box_edge_width"])
-                    else:
-                        element.set_linewidth(kawargs["linewidth"])
-                    # element.set_linestyle('solid')#('dashed')
-                    element.set_linestyle(kawargs["linestyle"])#('dashed')
-                    element.set_fill(kawargs["fill"])
-                    #element.set_hatch('/')
-                    if "fill_map" in kawargs:
-                        # element.set_fill(False)
-                        vert=element.get_path().vertices
+            if "y_ticks" in prepared_plots[plot]:
+                ticks=prepared_plots[plot]["y_ticks"]
+                for key in ticks:
+                    if "params" in ticks[key]:
+                        zeplt.tick_params(axis='y',which=key,**ticks[key]["params"])
 
-                        if "cmap_list" in kawargs:
-                            nb_colors=1+len(kawargs["cmap_list"])
-                            colormap=mpl_colors.ListedColormap(kawargs["cmap_list"])
-                        else:
-                            nb_colors=256
-                            colormap=plt.cm.viridis
+            first_twinx_lines, first_twinx_labels = plt.gca().get_legend_handles_labels()
+            # lines, labels = zeplt.get_legend_handles_labels()
 
-                        
-                        if "clip_on_box" in kawargs:
-                            
-                            extent=[vert[0][0],vert[1][0],kawargs["fill_map"][0],kawargs["fill_map"][1]]
-                            # gradient = np.linspace(0, 1, len(kawargs["cmap_list"]))
-                            # gradient = np.vstack((gradient, gradient)).T
-                            # imb = plt.imshow(gradient, cmap=mpl_colors.ListedColormap(kawargs["cmap_list"]),#plt.cm.viridis,
-                            #                origin='lower', extent=extent,
-                            #                clip_path=element, clip_on=True)
-                            # imb.set_clip_path(element)
-                                
-                            imb = plt.pcolormesh(
-                                (extent[0], extent[1]), 
-                                np.linspace(extent[2],extent[3],nb_colors),
-                                np.linspace((0,0),(nb_colors-1,nb_colors-1),nb_colors),
-                                cmap=colormap,
-                                clip_path=element, clip_on=True,rasterized=True)
-                        else:
+            twinx_ax = plt.gca().twinx()
 
-                            extent=[vert[0][0],vert[1][0],min(plot_func["args"]["y_sets"][elt_id]),max(plot_func["args"]["y_sets"][elt_id])]
-
-                            pmin=(extent[2]-kawargs["fill_map"][0])/(kawargs["fill_map"][1]-kawargs["fill_map"][0])*nb_colors
-                            pmax=(extent[3]-kawargs["fill_map"][0])/(kawargs["fill_map"][1]-kawargs["fill_map"][0])*nb_colors
-
-                            imb = plt.pcolormesh(
-                                (extent[0], extent[1]), #X
-                                np.linspace(extent[2],extent[3],nb_colors),#Y
-                                np.linspace((pmin,pmin),(pmax,pmax),nb_colors), # color grid
-                                vmin=0,
-                                vmax=nb_colors-1,
-                                cmap=colormap, 
-                                rasterized=True
-                               )
-
-                        elt_id+=1
+            if "twin_axis_label" in prepared_plots[plot]:
+                twinx_ax.set_ylabel(prepared_plots[plot]["twin_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font) 
 
 
+            func_id2, has_box_plots2, other_legend_handles2= plot_functions(prepared_plots[plot]["twinx_plot_functions"],colors,zeplt,should_be_legended=should_be_legended)
+            has_box_plots= (has_box_plots or has_box_plots2)
 
-
-                for element in my_box_plot[func_id]['whiskers']:
-                    if "color" in kawargs:
-                        element.set_color(kawargs["color"])#conf.colors[plot_func["color_index"]]
-                    element.set_linewidth(kawargs["linewidth"])
-                    element.set_linestyle(kawargs["linestyle"])#('dashed')
-
-                for element in my_box_plot[func_id]['caps']:
-                    if "color" in kawargs:
-                        element.set_color(kawargs["color"])#(colors[sheet_names.index(sheet)])#('blue')
-                    element.set_linewidth(kawargs["linewidth"])
-                    element.set_linestyle(kawargs["linestyle"])#('dashed')
-
-                for element in my_box_plot[func_id]['fliers']: # https://stackoverflow.com/questions/32480988/matplotlib-fliers-in-boxplot-object-not-setting-correctly
-                    element.set_markerfacecolor("None")#(colors[sheet_names.index(sheet)])#('blue')
-                    element.set_alpha(0.6)
-                    # element.set_color("None")#(colors[sheet_names.index(sheet)])#('blue')
-                    if "color" in kawargs:
-                        element.set_markeredgecolor(kawargs["color"])#(colors[sheet_names.index(sheet)])#('blue')
-                    else:
-                        element.set_markeredgecolor("purple")#(colors[sheet_names.index(sheet)])#('blue')
-
-                    element.set_markeredgewidth(kawargs["linewidth"])
-                    element.set_markersize(kawargs["fliersize"] if "fliersize" in kawargs else 12*plot_func["args"]["x_size"])#('dashed')   
-                    # element.set_marker('d')#  overrides sym
-
-
-            if plot_func["func_name"]=="violinplot":
-                considered_widths=[plot_func["args"]["x_size"]]*len(plot_func["args"]["x_values"])
-
-                if "custom_x_size" in kawargs:
-                    maxwidth=plot_func["args"]["x_size"]
-                    dyel=kawargs["custom_x_size"]["delta_y"]
-
-                    mdw=0
-                    wimax=[]
-                    for yes in plot_func["args"]["y_sets"]:
-                        ywidth=0
-                        current_y_range=min(yes)
-                        ymin=min(yes)
-                        ymax=max(yes)
-                        rows={i:[] for i in range(int((ymax-ymin)/dyel)+1)}
-                        for i in sorted(yes):
-                            rows[int((i-ymin)/dyel)].append(i)
-
-                        ywidth=max(len(rows[i]) for i in rows) #in dots
-                        wimax.append(ywidth)
-                        mdw=max(mdw,ywidth)
-
-                    dxel=maxwidth/mdw
-
-                    considered_widths=[j*dxel for j in wimax]
-
-                if "scattered" in kawargs:
-                    if not ("custom_x_size" in kawargs):
-                        dyel=1
-                        dxel=plot_func["args"]["x_size"]/10
-
-                    xind=0
-                    for yes in plot_func["args"]["y_sets"]:
-                        xind+=1
-
-                        ymin=min(yes)
-                        ymax=max(yes)
-                        rows={i:[] for i in range(int((ymax-ymin)/dyel)+1)}
-                        for i in sorted(yes):
-                            rows[int((i-ymin)/dyel)].append(i)
-
-                        xax=[]
-                        for row in rows:
-                            nel=len(rows[row])
-                            for ptind in range(nel):
-                                xval=plot_func["args"]["x_values"][xind-1]+(ptind*dxel - dxel*nel/2 + dxel - ((nel)%2)*dxel/2 - ((nel+1)%2)*dxel/2 )
-                                xax.append(xval)
-
-                        plt.scatter(xax,sorted(yes), zorder=10, **(kawargs["scattered"]))
-
-
-
-                violin_func=zeplt.violinplot(plot_func["args"]["y_sets"], 
-                    positions = plot_func["args"]["x_values"],
-                    widths=considered_widths,
-                    showmeans=True,
-                    showmedians=True,
-                    showextrema=True,
-                    bw_method=kawargs["bw_method"] if "bw_method" in kawargs else 'scott',
-                    ) #(4.2, 4.2),
-                
-                
-                # print(violin_func.keys())#dict_keys(['bodies', 'cmeans', 'cmaxes', 'cmins', 'cbars', 'cmedians'])
-                not_legended=True
-                median_lines=violin_func['cmedians']
-                if "legends" in prepared_plots[plot] and not_legended:
-                    median_lines.set_label(plot_func["legend"])# label
-                    not_legended=False
-                if "color" in kawargs:
-                    median_lines.set_color(kawargs["color"])
-#                    element.set_linestyle('solid')#('dashed')
-                median_lines.set_linestyle(kawargs["linestyle"])#('dashed')
-                median_lines.set_linewidth(kawargs["linewidth"])
-                cmin_lines=violin_func['cmins']
-                if "color" in kawargs:
-                    cmin_lines.set_color(kawargs["color"])
-                cmin_lines.set_linewidth(kawargs["linewidth"])
-                cmin_lines.set_linestyle(kawargs["linestyle"])#('dashed')
-
-                cbars_lines=violin_func['cbars']
-                if "color" in kawargs:
-                    cbars_lines.set_color(kawargs["color"])
-                cbars_lines.set_linewidth(kawargs["linewidth"])
-                cbars_lines.set_linestyle(kawargs["linestyle"])#('dashed')
-
-                cmeans_lines=violin_func['cmeans'] 
-                cmeans_lines.set_alpha(0.6)
-                if "color" in kawargs:
-                    cmeans_lines.set_color(kawargs["color"])#(colors[sheet_names.index(sheet)])#('blue')
-
-                elt_id=0
-                for element in violin_func['bodies']:
-                    element.set_facecolor(kawargs["fill_color"])
-                    if "violin_edge_width" in kawargs:
-                        element.set_linewidth(kawargs["violin_edge_width"])
-                    else:
-                        element.set_linewidth(kawargs["linewidth"])
-                    # element.set_linestyle('solid')#('dashed')
-                    element.set_linestyle(kawargs["linestyle"])#('dashed')
-
-                    if not kawargs["fill"]:
-                        element.set_facecolor('white')
-                        # element.set_alpha(0)
-
-                    if "color" in kawargs:
-                        element.set_edgecolor(kawargs["color"])
-
-                    if "fill_map" in kawargs:
-                        vert=element.get_paths()[0].vertices
-
-                        if "cmap_list" in kawargs:
-                            nb_colors=1+len(kawargs["cmap_list"])
-                            colormap=mpl_colors.ListedColormap(kawargs["cmap_list"])
-                        else:
-                            nb_colors=256
-                            colormap=plt.cm.viridis
-
-                        patch_edgecolor=kawargs["color"] if "color" in kawargs else 'k'
-                        patch=PathPatch(element.get_paths()[0], facecolor='none', edgecolor=patch_edgecolor, linestyle=kawargs["linestyle"])
-                        plt.gca().add_patch(patch)
-
-                        
-                        if not ("indep_violin_fill" in kawargs):
-                            extent=[min(vert[:,0]), max(vert[:,0]),kawargs["fill_map"][0],kawargs["fill_map"][1]]
-
-                            imb = plt.pcolormesh(
-                                (extent[0], extent[1]), 
-                                np.linspace(extent[2],extent[3],nb_colors),
-                                np.linspace((0,0),(nb_colors-1,nb_colors-1),nb_colors),
-                                cmap=colormap,
-                                clip_path=patch, clip_on=True,rasterized=True) #element.get_transformed_clip_path_and_affine()
-
-                            imb.set_clip_path(patch)
-                        else:
-                            extent=[min(vert[:,0]), max(vert[:,0]),min(plot_func["args"]["y_sets"][elt_id]),max(plot_func["args"]["y_sets"][elt_id])]
-
-                            imb = plt.pcolormesh(
-                                (extent[0], extent[1]), #X
-                                np.linspace(extent[2],extent[3],nb_colors),#Y
-                                np.linspace((0,0),(nb_colors-1,nb_colors-1),nb_colors),# color grid       
-                                vmin=0,
-                                vmax=nb_colors-1,
-                                cmap=colormap, 
-                                clip_path=patch, clip_on=True,
-                                rasterized=True
-                               )
-                            imb.set_clip_path(patch)
-
-                    elt_id+=1
-            func_id+=1
+            other_legend_handles+=other_legend_handles2
         
         #ticks
         extra_xtick_label_size=0
@@ -1048,6 +1095,10 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 other_legend_handles+=prepared_plots[plot]["legends"]["manual_legends"]
 
             myhandles, mylabels = plt.gca().get_legend_handles_labels()
+            if "twinx_plot_functions" in prepared_plots[plot]:
+                myhandles+=first_twinx_lines
+                mylabels+=first_twinx_labels
+
             if len(myhandles)!=0:
                 other_legend_handles+=myhandles
 
@@ -1467,11 +1518,11 @@ if __name__ == '__main__':
                       "x_axis_label":"Val",
                       "title":"side title",
                   }},
-        43:{"values":{
+        143:{"values":{
                 0:{"type":"plot","y_values":4000*(-3.2-.46*np.log(.00001+np.sinc((0.0003*np.arange(1,10000))**6)**2)), 'color_index':0, 'legend':'plot 0'},
                 1:{"type":"plot","y_values":10000*np.sin(np.linspace(1,10000,9)),"x_values":range(10000,1000,-1000),"linestyle":'--'},},
             "zoom_bbox":(-0.066,-0.9,0.1,-0.55),    
-            "zoom_bbox_dpi":600,
+            "zoom_bbox_dpi":200,
             "y_ticks":{"major":{"scalar":True}},    
             "xmin":3000,
             "ymin":-10200,                        
@@ -1805,6 +1856,30 @@ if __name__ == '__main__':
         "xmax":20,
         "ymax":20,
         "tight_layout":True}            
+
+    #twinx example
+    some_data[44]={
+        "values":{
+            0:{"type":"plot","y_values":[0, 20, 15], "x_values":[0,np.pi/4,np.pi/8],  'color':'purple', "linewidth":4., 'legend':'plot'},
+            1:{"type":"plot","y_values":20+10*np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
+            9:{"type":"annotate","text":"4,4","pos":(4.,4.),"va":'center', "ha":'center', "color":'purple'},
+        }, 
+        "twinx_values":{
+            0:{"type":"plot","y_values":[0, 20, 15], "x_values":[8,8-np.pi/4,8-np.pi/8],  'color':'red', "linewidth":4., 'legend':'twin'},
+            9:{"type":"annotate","text":"4,4 twin","pos":(4.,4.),"va":'center', "ha":'center', 'color':'red'},
+            # 1:{"type":"plot","y_values":20+10*np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
+        },
+        "plot_types":"aekufhqilruy",
+        "title":"Twinx plots",        
+        "legends":{"italic_legends":True},
+    }
+
+    #empty/blank plot
+    some_data[45]={
+        "values":{
+        }, 
+        "axis_off":True
+    }
 
     len_data=len(some_data)
     some_data_keys=list(some_data.keys())
