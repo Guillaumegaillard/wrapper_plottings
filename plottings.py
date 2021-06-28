@@ -1294,7 +1294,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             # the colorbar will be used.
             cmap = mpl_colors.ListedColormap(color_list)#['r', 'orange', 'b', 'g'])
             color_bounds_crop=color_bounds[:cmap.N]
-            color_bounds_crop=np.append(color_bounds_crop,1.)
+            color_bounds_crop=np.append(color_bounds_crop,color_bounds[-1])
             norm = mpl_colors.BoundaryNorm(color_bounds_crop, cmap.N)
             cb2 = mpl_colorbar.ColorbarBase(ax2, cmap=cmap,
                                             norm=norm,
@@ -1307,6 +1307,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                                             #orientation='vertical',
                                             #**kw
                                             )
+
             cb2.ax.tick_params(labelsize=conf.ticks_labels_font_size)
             #Label
             if "label" in prepared_plots[plot]["color_bar"]:
