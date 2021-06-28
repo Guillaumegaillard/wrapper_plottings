@@ -280,6 +280,7 @@ def prepare_plots(plot_data):
                       "y_axis_label",
                       "twin_axis_label",
                       "title",
+                      "titlepad",
                       "legends",
                       "x_ticks",
                       "y_ticks",
@@ -600,8 +601,10 @@ def plot_functions(plot_functions,colors,zeplt,should_be_legended=False):
                 plot_func["args"],
                 cmap=mpl_colors.ListedColormap(color_list),
                 vmin=vmin,vmax=vmax,
-                rasterized=True)
-                #edgecolor='none')#cmap=plt.cm.jet)
+                rasterized=True,
+                shading='auto'
+            )
+            #edgecolor='none')#cmap=plt.cm.jet)
 
             
         my_box_plot={}
@@ -671,7 +674,9 @@ def plot_functions(plot_functions,colors,zeplt,should_be_legended=False):
                             np.linspace(extent[2],extent[3],nb_colors),
                             np.linspace((0,0),(nb_colors-1,nb_colors-1),nb_colors),
                             cmap=colormap,
-                            clip_path=element, clip_on=True,rasterized=True)
+                            clip_path=element, clip_on=True,rasterized=True,
+                            shading='auto'
+                            )
 
                     else:
 
@@ -683,12 +688,17 @@ def plot_functions(plot_functions,colors,zeplt,should_be_legended=False):
                         imb = plt.pcolormesh(
                             (extent[0], extent[1]), #X
                             np.linspace(extent[2],extent[3],nb_colors),#Y
-                            np.linspace((pmin,pmin),(pmax,pmax),nb_colors), # color grid
+                            np.linspace(pmin,pmax,nb_colors-1).reshape((nb_colors-1,1)),
                             vmin=0,
+                            # vmax=nb_colors,
                             vmax=nb_colors-1,
                             cmap=colormap, 
-                            rasterized=True
-                           )
+                            rasterized=True,
+                            shading='flat'
+                            # shading='gouraud'
+                            # shading='nearest'
+                            # shading='auto'
+                            )
 
                     elt_id+=1
 
@@ -849,9 +859,13 @@ def plot_functions(plot_functions,colors,zeplt,should_be_legended=False):
                         imb = plt.pcolormesh(
                             (extent[0], extent[1]), 
                             np.linspace(extent[2],extent[3],nb_colors),
-                            np.linspace((0,0),(nb_colors-1,nb_colors-1),nb_colors),
+                            # np.linspace((0,0),(nb_colors-1,nb_colors-1),nb_colors),
+                            np.linspace(0,nb_colors-1,nb_colors-1).reshape((nb_colors-1,1)),
                             cmap=colormap,
-                            clip_path=patch, clip_on=True,rasterized=True) #element.get_transformed_clip_path_and_affine()
+                            clip_path=patch, clip_on=True,rasterized=True,
+                            shading='flat'
+                            # shading='auto'
+                            ) #element.get_transformed_clip_path_and_affine()
 
                         imb.set_clip_path(patch)
                     else:
@@ -865,8 +879,9 @@ def plot_functions(plot_functions,colors,zeplt,should_be_legended=False):
                             vmax=nb_colors-1,
                             cmap=colormap, 
                             clip_path=patch, clip_on=True,
-                            rasterized=True
-                           )
+                            rasterized=True,
+                            shading='auto'
+                            )
                         imb.set_clip_path(patch)
 
                 elt_id+=1
@@ -882,7 +897,9 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
     if has_predef_axes:
         zeplt=in_ax
         zeplt.yaxis.tick_right()
-        zeplt.set_xticks([])   
+        zeplt.set_xticks([])
+        zeplt.set_yticks([])   
+
 
     other_legend_handles=[]                  
         
@@ -910,13 +927,16 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 zeplt.ylabel(prepared_plots[plot]["y_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font)
         if "title" in prepared_plots[plot]:
             fontdict={'fontsize': conf.title_font_size,'verticalalignment': 'baseline','horizontalalignment': "center"}
-            if 'axes.titlepad' in rcParams.keys():
+            if "titlepad" in prepared_plots[plot]:
+                titlepad=prepared_plots[plot]["titlepad"]
+                plt.title(prepared_plots[plot]["title"],fontdict=fontdict, pad=titlepad)
+            elif 'axes.titlepad' in rcParams.keys():
                 rcParams['axes.titlepad'] = conf.title_and_axes_labelpad 
                 plt.title(prepared_plots[plot]["title"],fontdict=fontdict)
             else:
                 #plt.title(prepared_plots[plot]["title"],fontdict=fontdict, y=1.+conf.title_and_axes_labelpad/(72.*fig.get_size_inches()[1]))
                 plt.title(prepared_plots[plot]["title"],fontdict=fontdict, y=1.+conf.title_and_axes_labelpad/(72.*conf.figsize[1]))
-                
+    
         if "colors" in prepared_plots[plot]:
             colors=prepared_plots[plot]["colors"]
         else:
@@ -970,7 +990,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             axis='x',          # changes apply to the x-axis
             which='both',      # both major and minor ticks are affected
             bottom='on',      # ticks along the bottom edge are off
-            top='off',         # ticks along the top edge are off
+            top=False,#'off',         # ticks along the top edge are off
             labelbottom='on',
             # pad=conf.title_and_axes_labelpad, #label pad
             labelsize=conf.ticks_labels_font_size+extra_xtick_label_size) # labels along the bottom edge are off
@@ -999,9 +1019,10 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                         plt.gca().xaxis.set_minor_formatter(mike)
                     else:
                         plt.gca().xaxis.set_major_formatter(mike)
+                    plt.gca().xaxis.get_offset_text().set_fontsize(conf.ticks_labels_font_size+extra_xtick_label_size)
 
                 if "labels" in ticks[key]:
-                    plt.gca().xaxis.set_ticklabels(ticks[key]["labels"],minor=(key=="minor"))
+                    plt.gca().xaxis.set_ticklabels(ticks[key]["labels"],minor=(key=="minor"),fontsize=conf.ticks_labels_font_size+extra_xtick_label_size)
                 else:
                     if has_box_plots:
                         plt.gca().xaxis.set_ticklabels([]) 
@@ -1009,13 +1030,11 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
         if "y_ticks" in prepared_plots[plot]:
             ticks=prepared_plots[plot]["y_ticks"]
             for key in ticks:
-                if "params" in ticks[key]:
-                    zeplt.tick_params(axis='y',which=key,**ticks[key]["params"])
                 if "range_step" in ticks[key]:
                     plt.gca().yaxis.set_ticks(np.arange(ticks[key]["from"],ticks[key]["to"],ticks[key]["range_step"]),minor=(key=="minor"))
                 elif "positions" in ticks[key]:
                     plt.gca().yaxis.set_ticks(ticks[key]["positions"],minor=(key=="minor"))
-                
+
                 if "scalar" in ticks[key]:
                     mike=ScalarFormatter()
                     mike.set_powerlimits((-3, 4))
@@ -1023,11 +1042,17 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                         plt.gca().yaxis.set_minor_formatter(mike)
                     else:
                         plt.gca().yaxis.set_major_formatter(mike)
+                    plt.gca().yaxis.get_offset_text().set_fontsize(conf.ticks_labels_font_size+extra_ytick_label_size)
 
                 if "labels" in ticks[key]:
-                    plt.gca().yaxis.set_ticklabels(ticks[key]["labels"],minor=(key=="minor"))
+                    plt.gca().yaxis.set_ticklabels(ticks[key]["labels"],minor=(key=="minor"),fontsize=conf.ticks_labels_font_size+extra_ytick_label_size)
                     
+                if "params" in ticks[key]:
+                    zeplt.tick_params(axis='y',which=key,**ticks[key]["params"])
 
+        for axis in ['top','bottom','left','right','polar', 'start', 'end', 'inner']:
+            if axis in plt.gca().spines: 
+                plt.gca().spines[axis].set_linewidth(conf.general_plots_linewidth/2)
                 
         
         #lims
@@ -1086,6 +1111,9 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             legend_linewidth=prepared_plots[plot]["legends"]["legend_linewidth"] if "legend_linewidth"  in prepared_plots[plot]["legends"] else conf.legend_linewidth
             legend_border_width=prepared_plots[plot]["legends"]["legend_border_width"] if "legend_border_width"  in prepared_plots[plot]["legends"] else conf.legend_border_width
             legend_border_color=prepared_plots[plot]["legends"]["legend_border_color"] if "legend_border_color"  in prepared_plots[plot]["legends"] else conf.legend_border_color
+
+            legend_bbox_to_anchor=prepared_plots[plot]["legends"]["bbox_to_anchor"] if "bbox_to_anchor"  in prepared_plots[plot]["legends"] else (0,0,1,1)
+            legend_args=prepared_plots[plot]["legends"]["legend_args"] if "legend_args"  in prepared_plots[plot]["legends"] else {}
                 
             if "legend_loc"  in prepared_plots[plot]["legends"]:
                 leg_loc=prepared_plots[plot]["legends"]["legend_loc"]
@@ -1104,7 +1132,13 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 other_legend_handles+=myhandles
 
             if len(other_legend_handles)>0:
-                leg=zeplt.legend(handles=other_legend_handles,fontsize=legend_labels_font_size,markerscale=legend_markerscale, loc=leg_loc)        
+                leg=zeplt.legend(
+                    handles=other_legend_handles,
+                    fontsize=legend_labels_font_size,
+                    markerscale=legend_markerscale, 
+                    loc=leg_loc,
+                    bbox_to_anchor=legend_bbox_to_anchor,
+                    **legend_args)
             
             if "italic_legends" in prepared_plots[plot]["legends"] and prepared_plots[plot]["legends"]["italic_legends"]:
                 rcParams['font.style'] = 'normal'
@@ -1203,17 +1237,18 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             if "location" in prepared_plots[plot]["side_bar"]:
                 location=prepared_plots[plot]["side_bar"]["location"]
                 
-                
+            sb_size="5%"
+            if "sb_size" in prepared_plots[plot]["side_bar"]:
+                sb_size=prepared_plots[plot]["side_bar"]["sb_size"]
+                                
+            sb_pad="3%"
+            if "sb_pad" in prepared_plots[plot]["side_bar"]:
+                sb_pad=prepared_plots[plot]["side_bar"]["sb_pad"]
+
             divider = make_axes_locatable(plt.gca())
-#            ax1= zeplt.gca()
             # ax2 = divider.new_vertical("5%", pad="3%",axes_class=maxes.Axes)
-
-            ax2 = divider.append_axes(location, "5%", pad="3%",axes_class=maxes.Axes)
+            ax2 = divider.append_axes(location, sb_size, pad=sb_pad ,axes_class=maxes.Axes)
             # ax2 = divider.append_axes(location, "5%", pad="3%")
-                # def append_axes(self, position, size, pad=None, add_to_figure=True,
-                #     **kwargs):
-
-            #zeplt.colorbar(im, cax=cax)
             
             sideplots=prepare_plots({0:prepared_plots[plot]["side_bar"]})
             plot_indivs(sideplots,in_ax=ax2)
@@ -1225,7 +1260,14 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             location="right"
             if "location" in prepared_plots[plot]["color_bar"]:
                 location=prepared_plots[plot]["color_bar"]["location"]
-                
+
+            cb_size="5%"
+            if "cb_size" in prepared_plots[plot]["color_bar"]:
+                cb_size=prepared_plots[plot]["color_bar"]["cb_size"]
+                                
+            cb_pad="3%"
+            if "cb_pad" in prepared_plots[plot]["color_bar"]:
+                cb_pad=prepared_plots[plot]["color_bar"]["cb_pad"]   
             
             color_list=conf.colorbar_colors
             color_bounds=np.array([])
@@ -1243,7 +1285,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             color_bounds=np.trunc(color_bounds*decade)/decade
                 
             divider = make_axes_locatable(plt.gca())
-            ax2 = divider.append_axes(location, "5%", pad="3%",axes_class=maxes.Axes)
+            ax2 = divider.append_axes(location, cb_size, pad=cb_pad ,axes_class=maxes.Axes)
             #zeplt.colorbar(im, cax=cax)
             
             
@@ -1286,7 +1328,8 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 path_to_save=dir_to_save+"/"+path_to_save
                 if not os.path.exists(dir_to_save):
                     os.makedirs(dir_to_save)
-            plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi)
+            plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi,bbox_inches='tight')
+            # plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi)
         elif (not from_page) and "file_to_save" in prepared_plots[plot] and "format_to_save" in prepared_plots[plot]:
             path_to_save=prepared_plots[plot]["file_to_save"]
             if "dir_to_save" in prepared_plots[plot]:
@@ -1305,7 +1348,15 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             
                 
             
-def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, grid_specs=[], show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, user_defines_size=False,user_defined_size=conf.figsize,user_defined_dpi=conf.dpi):
+def plot_pages(
+    prepared_plots, nb_plots_hor=3, nb_plots_vert=2, grid_specs=[], show=False,
+    file_to_save=None,format_to_save=None,dir_to_save=None,
+    PDF_to_add=None, user_defines_size=False,user_defined_size=conf.figsize,user_defined_dpi=conf.dpi,
+    page_info="",
+    user_defined_tlfs=-1,
+    user_defined_alfs=-1
+    ):
+    
     global plot_has_been_shown
     
     if show:
@@ -1315,6 +1366,12 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, grid_specs=[], s
 
     if user_defines_size:
         conf.set_figsize(user_defined_size)
+
+    if user_defined_tlfs!=-1:
+        conf.update_ticks_labels_font_size(user_defined_tlfs)
+
+    if user_defined_alfs!=-1:
+        conf.update_axes_labels_font_size(user_defined_alfs)
 
     axes={}
 
@@ -1333,7 +1390,7 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, grid_specs=[], s
     sppk=sorted(prepared_plots.keys())
     
     for page_id in range(nb_pages):
-        print("setting page {0}/{1}...".format(page_id+1,nb_pages))
+        print("setting page {0}/{1}... {2}".format(page_id+1,nb_pages,page_info))
         
         pfig=plt.figure(num=page_id, figsize=conf.figsize, dpi=user_defined_dpi)
         gs = pfig.add_gridspec(nb_plots_vert, nb_plots_hor)
@@ -1382,12 +1439,13 @@ def plot_pages(prepared_plots, nb_plots_hor=3, nb_plots_vert=2, grid_specs=[], s
 
             
         if file_to_save and format_to_save:
-            path_to_save=file_to_save+' {0}.{1}'.format(page_id,format_to_save)
+            path_to_save=file_to_save+'_{0}.{1}'.format(page_id,format_to_save)
             if dir_to_save:
                 path_to_save=dir_to_save+"/"+path_to_save
                 if not os.path.exists(dir_to_save):
                     os.makedirs(dir_to_save)
-            plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi)
+            plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi,bbox_inches='tight')
+            # plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi)
         if PDF_to_add:
             plt.savefig(PDF_to_add,format="pdf", dpi=user_defined_dpi)
         if show:
@@ -1521,6 +1579,8 @@ if __name__ == '__main__':
                       "y_axis_label":"side bar plot label",
                       "x_axis_label":"Val",
                       "title":"side title",
+                      "sb_size":"30%",
+                      "sb_pad":"10%"
                   }},
         143:{"values":{
                 0:{"type":"plot","y_values":4000*(-3.2-.46*np.log(.00001+np.sinc((0.0003*np.arange(1,10000))**6)**2)), 'color_index':0, 'legend':'plot 0'},
@@ -1579,7 +1639,12 @@ if __name__ == '__main__':
             "title":"semilogx and plot",
             "legends":{"manual_legends":legend_example},
             "grid":{"which":'major',"axis":"both"},
-            "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
+            "color_bar":{
+                "default_bounds":True,
+                "color_list":["red","green","blue","purple","k","yellow","cyan"],
+                "cb_size":"30%",
+                "cb_pad":"10%"
+            }},
         22:{"values":{
                 0:{"type":"semilogy","y_values":np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
                 1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
@@ -1593,6 +1658,7 @@ if __name__ == '__main__':
             "x_axis_label":"th x lbel",
             "title":"semilogy and plot",
             "legends":{"manual_legends":legend_example},
+            "x_ticks":{"major":{"params":{"pad":15,"length":15}}},
             "grid":{"which":'major',"axis":"both"},
             "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
         23:{"values":{
@@ -1607,7 +1673,14 @@ if __name__ == '__main__':
             "y_axis_label":"y label",
             "x_axis_label":"th x lbel",
             "title":"loglog and plot",
-            "legends":{"manual_legends":legend_example},
+            "titlepad":30,
+            "legends":{
+            	"manual_legends":legend_example,
+                "legend_loc":"center",
+                "legend_labels_font_size":13, 
+                "legend_args":{"handlelength":4,"labelspacing":3,"ncol":5},
+                "bbox_to_anchor":(0.51,1.08),
+            },            
             "layout_padding":{"w_pad":0, "h_pad":2, "pad":5}, #inter plot in weight, inter plot in height, plot(s) to page for all plots in page being its last
             "grid":{"which":'major',"axis":"both"},
             "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
@@ -1900,6 +1973,6 @@ if __name__ == '__main__':
     plot_indivs(prepared_plots,show=False,file_to_save=None,dir_to_save=None,PDF_to_add=None,user_defined_dpi=100)
 
     pp1 = PdfPages('plottings.pdf')
-    plot_pages(prepared_plots, nb_plots_hor=2, nb_plots_vert=2, grid_specs=[(0,slice(None,None)),(1,0),(1,1)], show=False, file_to_save="plottings", format_to_save='eps', dir_to_save="test_plots_gen", PDF_to_add=pp1,user_defined_dpi=100)
+    plot_pages(prepared_plots, nb_plots_hor=2, nb_plots_vert=2, grid_specs=[(0,slice(None,None)),(1,0),(1,1)], show=False, file_to_save="plottings", format_to_save='svg', dir_to_save="test_plots_gen", PDF_to_add=pp1,user_defined_dpi=100)
     pp1.close()
     
