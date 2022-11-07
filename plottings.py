@@ -4,6 +4,8 @@ Created on 15 sept. 2017
 '''
 import os
 import numpy as np
+rng = np.random.default_rng()
+
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages 
 from matplotlib import rcParams
@@ -23,9 +25,9 @@ from PIL import Image
 
 #from wrapper_plottings 
 try:
-	from . import config_plottings as conf
+    from . import config_plottings as conf
 except ImportError:
-	import config_plottings as conf
+    import config_plottings as conf
 
 plot_has_been_shown=False
 
@@ -35,7 +37,10 @@ plot_has_been_shown=False
 
 plot_params={}
 function_params={}
-plot_types=["plot","polar","semilogx","semilogy","loglog","scatter","boxplot","violinplot","vline","hline","vspan","hspan","annotate","imshow","pcolormesh","bar","text","table"]
+plot_types=[
+    "plot","polar","semilogx","semilogy","loglog","scatter","boxplot","violinplot",
+    "vline","hline","vspan","hspan","annotate","imshow","pcolormesh", "simple_pcolormesh",
+    "bar","text","table","fill_between"]
 args_params={}
 details={"plot_params":{},"func_params":{}}
 for plot_type in plot_types:
@@ -253,7 +258,16 @@ details["func_params"]["table"]["colLoc"]="""Position of the text in the column.
 details["func_params"]["table"]["fontsize"]="""Defaults in config (tick label size)."""   
 details["func_params"]["table"]["label_params"]="""Two params:\n
  edges_off: boolean to remove borders of label cells;
- ylab_height_prop: to set the height of col label cells (in proportion of the y axis).\n Not yet found any solution to control the width of row label cells."""   
+ ylab_height_prop: to set the height of col label cells (in proportion of the y axis).\n Not yet found any solution to control the width of row label cells."""  
+
+function_params["fill_between"]="""The function to fill between (curves) or inside (polygons)."""
+args_params["fill_between"]["legend"]="""The legend associated with the fill area."""
+args_params["fill_between"]["type"]="""The type of plot function: 'fill_between'."""
+args_params["fill_between"]["y_values1"]="""The y values of the first bounding curve"""
+args_params["fill_between"]["y_values2"]="""The y values of the second bounding curve to fill. def 0"""
+args_params["fill_between"]["x_values"]="""The x values of the curves to fill. \n Default range of x axis. Also works for polygons or cycles of x, y1"""
+details["func_params"]["fill_between"]["linewidth"]="""Default in config_plotting."""      
+
 
 for plot_type in plot_types:
     args_params[plot_type]["color_index"]="""Opt. argument giving the index of the color of the plot in the color list."""
@@ -278,7 +292,10 @@ def prepare_plots(plot_data):
                       "dir_to_save",
                       "x_axis_label",
                       "y_axis_label",
-                      "twin_axis_label",
+                      "twinx_axis_label",
+                      "twinx_ticks",
+                      "twinx_max",
+                      "twinx_min",
                       "title",
                       "titlepad",
                       "legends",
@@ -314,9 +331,9 @@ def prepare_plots(plot_data):
         
         prepared+=1
         if (prepared%50==0):
-        	print("prepared {0}/{1}".format(prepared,len_data))        
-                        
-            
+            print("prepared {0}/{1}".format(prepared,len_data))        
+    
+    print("prepared {0}/{1}".format(prepared,len_data))                            
     return prepared_plots
 
 def prepare_idv_values(vals_dict):
@@ -419,7 +436,9 @@ def prepare_idv_values(vals_dict):
             plot_func["vmax"]=vals_dict[cloud]["vmax"]
             prepared_params+=["array"]                
 
-                     
+        if ptype=="simple_pcolormesh":   
+            plot_func["args"]=vals_dict[cloud]["array"] 
+            prepared_params+=["array"]                                
         
         if ptype=="bar":   
             plot_func["args"]=[vals_dict[cloud]["center"],
@@ -468,7 +487,11 @@ def prepare_idv_values(vals_dict):
             
             prepared_params+=["rows","cols","matrix","line_width_prop","col_height_prop","fontsize", "label_params", "rowHeights"]
             
-                                            
+        if ptype == "fill_between":
+            plot_func["args"]=[vals_dict[cloud]["x_values"],vals_dict[cloud]["y_values1"]]
+            
+            prepared_params+=["x_values","y_values1"]
+
                     
         for key in vals_dict[cloud]:
             if key not in prepared_params:
@@ -571,9 +594,18 @@ def plot_functions(plot_functions,colors,zeplt,should_be_legended=False):
                 
         if plot_func["func_name"]=="scatter":
             zeplt.scatter(*plot_func["args"], **kawargs)
-        
+
+        if plot_func["func_name"]=="fill_between":
+            if "y_values2" in plot_func:
+                kawargs["y2"]=plot_func["y_values2"]
+                del(kawargs["y_values2"])
+            zeplt.fill_between(*plot_func["args"], **kawargs)
+
         if plot_func["func_name"]=="imshow":
             zeplt.imshow(plot_func["args"], **kawargs)
+
+        if plot_func["func_name"]=="simple_pcolormesh":
+            zeplt.pcolormesh(plot_func["args"], **kawargs)
 
         if plot_func["func_name"]=="pcolormesh":
             xmin=plot_func["xmin"]
@@ -810,6 +842,12 @@ def plot_functions(plot_functions,colors,zeplt,should_be_legended=False):
             cmin_lines.set_linewidth(kawargs["linewidth"])
             cmin_lines.set_linestyle(kawargs["linestyle"])#('dashed')
 
+            cmax_lines=violin_func['cmaxes']
+            if "color" in kawargs:
+                cmax_lines.set_color(kawargs["color"])
+            cmax_lines.set_linewidth(kawargs["linewidth"])
+            cmax_lines.set_linestyle(kawargs["linestyle"])#('dashed')            
+
             cbars_lines=violin_func['cbars']
             if "color" in kawargs:
                 cbars_lines.set_color(kawargs["color"])
@@ -817,13 +855,16 @@ def plot_functions(plot_functions,colors,zeplt,should_be_legended=False):
             cbars_lines.set_linestyle(kawargs["linestyle"])#('dashed')
 
             cmeans_lines=violin_func['cmeans'] 
-            cmeans_lines.set_alpha(0.6)
+            cmeans_lines.set_alpha(0. if "no_means" in kawargs else 0.6)
             if "color" in kawargs:
                 cmeans_lines.set_color(kawargs["color"])#(colors[sheet_names.index(sheet)])#('blue')
 
             elt_id=0
             for element in violin_func['bodies']:
                 element.set_facecolor(kawargs["fill_color"])
+                if "violin_edge_alpha" in kawargs:
+                    element.set_alpha(kawargs["violin_edge_alpha"])
+
                 if "violin_edge_width" in kawargs:
                     element.set_linewidth(kawargs["violin_edge_width"])
                 else:
@@ -947,7 +988,16 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
 
         func_id, has_box_plots, other_legend_handles = plot_functions(prepared_plots[plot]["plot_functions"],colors,zeplt,should_be_legended=should_be_legended)
 
-        if "twinx_plot_functions" in prepared_plots[plot]:
+        ax1=plt.gca()
+        there_is_a_twin_too=False
+        if ("twinx_plot_functions" in prepared_plots[plot] 
+            or "twinx_ticks" in prepared_plots[plot]
+            or "twinx_min" in prepared_plots[plot]
+            or "twinx_max" in prepared_plots[plot]
+            or "twinx_axis_label" in prepared_plots[plot]):
+
+            there_is_a_twin_too=True
+
 
             # twinx_ax.tick_params(
             #     axis='y',          # changes apply to the y-axis
@@ -956,26 +1006,31 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             #     labelsize=60) # labels along the bottom edge are off
             #     # labelsize=conf.ticks_labels_font_size+extra_ytick_label_size) # labels along the bottom edge are off
 
-            if "y_ticks" in prepared_plots[plot]:
-                ticks=prepared_plots[plot]["y_ticks"]
-                for key in ticks:
-                    if "params" in ticks[key]:
-                        zeplt.tick_params(axis='y',which=key,**ticks[key]["params"])
+            #NEXT PAR REMOVED TO ADD twinx_ticks 2022-11-05
+            # if "y_ticks" in prepared_plots[plot]:
+            #     ticks=prepared_plots[plot]["y_ticks"]
+            #     for key in ticks:
+            #         if "params" in ticks[key]:
+            #             # zeplt.tick_params(axis='y',which=key,**ticks[key]["params"])
+            #             zeplt.tick_params(axis='y',which=key,**ticks[key]["params"])
 
-            first_twinx_lines, first_twinx_labels = plt.gca().get_legend_handles_labels()
+
+            twinx_ax = ax1.twinx()
+
+        if "twinx_plot_functions" in prepared_plots[plot]:
+
+            first_twinx_lines, first_twinx_labels = ax1.get_legend_handles_labels()
             # lines, labels = zeplt.get_legend_handles_labels()
-
-            twinx_ax = plt.gca().twinx()
-
-            if "twin_axis_label" in prepared_plots[plot]:
-                twinx_ax.set_ylabel(prepared_plots[plot]["twin_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font) 
-
-
+        
             func_id2, has_box_plots2, other_legend_handles2= plot_functions(prepared_plots[plot]["twinx_plot_functions"],colors,zeplt,should_be_legended=should_be_legended)
             has_box_plots= (has_box_plots or has_box_plots2)
 
             other_legend_handles+=other_legend_handles2
         
+        if "twinx_axis_label" in prepared_plots[plot]:
+            twinx_ax.set_ylabel(prepared_plots[plot]["twinx_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font) 
+
+
         #ticks
         extra_xtick_label_size=0
         if "extra_xtick_label_size" in prepared_plots[plot]:
@@ -995,11 +1050,18 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             # pad=conf.title_and_axes_labelpad, #label pad
             labelsize=conf.ticks_labels_font_size+extra_xtick_label_size) # labels along the bottom edge are off
             
-        zeplt.tick_params(
+        ax1.tick_params(
             axis='y',          # changes apply to the y-axis
             which='both',      # both major and minor ticks are affected
             # pad=conf.title_and_axes_labelpad,
             labelsize=conf.ticks_labels_font_size+extra_ytick_label_size) # labels along the bottom edge are off
+        if there_is_a_twin_too:
+            twinx_ax.tick_params(
+                axis='y',          # changes apply to the y-axis
+                which='both',      # both major and minor ticks are affected
+                # pad=conf.title_and_axes_labelpad,
+                labelsize=conf.ticks_labels_font_size+extra_ytick_label_size) # labels along the bottom edge are off
+
         
         #tick and labels
         if "x_ticks" in prepared_plots[plot]:
@@ -1008,63 +1070,105 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 if "params" in ticks[key]:
                     zeplt.tick_params(axis='x',which=key,**ticks[key]["params"])
                 if "range_step" in ticks[key]:
-                    plt.gca().xaxis.set_ticks(np.arange(ticks[key]["from"],ticks[key]["to"],ticks[key]["range_step"]),minor=(key=="minor"))
+                    ax1.xaxis.set_ticks(np.arange(ticks[key]["from"],ticks[key]["to"],ticks[key]["range_step"]),minor=(key=="minor"))
                 elif "positions" in ticks[key]:
-                    plt.gca().xaxis.set_ticks(ticks[key]["positions"],minor=(key=="minor"))
+                    ax1.xaxis.set_ticks(ticks[key]["positions"],minor=(key=="minor"))
 
                 if "scalar" in ticks[key]:
                     mike=ScalarFormatter()
                     mike.set_powerlimits((-3, 4))
                     if key=="minor":
-                        plt.gca().xaxis.set_minor_formatter(mike)
+                        ax1.xaxis.set_minor_formatter(mike)
                     else:
-                        plt.gca().xaxis.set_major_formatter(mike)
-                    plt.gca().xaxis.get_offset_text().set_fontsize(conf.ticks_labels_font_size+extra_xtick_label_size)
+                        ax1.xaxis.set_major_formatter(mike)
+                    ax1.xaxis.get_offset_text().set_fontsize(conf.ticks_labels_font_size+extra_xtick_label_size)
 
                 if "labels" in ticks[key]:
-                    plt.gca().xaxis.set_ticklabels(ticks[key]["labels"],minor=(key=="minor"),fontsize=conf.ticks_labels_font_size+extra_xtick_label_size)
+                    ax1.xaxis.set_ticklabels(ticks[key]["labels"],minor=(key=="minor"),fontsize=conf.ticks_labels_font_size+extra_xtick_label_size)
                 else:
                     if has_box_plots:
-                        plt.gca().xaxis.set_ticklabels([]) 
+                        ax1.xaxis.set_ticklabels([]) 
         
         if "y_ticks" in prepared_plots[plot]:
             ticks=prepared_plots[plot]["y_ticks"]
             for key in ticks:
                 if "range_step" in ticks[key]:
-                    plt.gca().yaxis.set_ticks(np.arange(ticks[key]["from"],ticks[key]["to"],ticks[key]["range_step"]),minor=(key=="minor"))
+                    ax1.yaxis.set_ticks(np.arange(ticks[key]["from"],ticks[key]["to"],ticks[key]["range_step"]),minor=(key=="minor"))
                 elif "positions" in ticks[key]:
-                    plt.gca().yaxis.set_ticks(ticks[key]["positions"],minor=(key=="minor"))
+                    ax1.yaxis.set_ticks(ticks[key]["positions"],minor=(key=="minor"))
 
                 if "scalar" in ticks[key]:
                     mike=ScalarFormatter()
                     mike.set_powerlimits((-3, 4))
                     if key=="minor":
-                        plt.gca().yaxis.set_minor_formatter(mike)
+                        ax1.yaxis.set_minor_formatter(mike)
                     else:
-                        plt.gca().yaxis.set_major_formatter(mike)
-                    plt.gca().yaxis.get_offset_text().set_fontsize(conf.ticks_labels_font_size+extra_ytick_label_size)
+                        ax1.yaxis.set_major_formatter(mike)
+                    ax1.yaxis.get_offset_text().set_fontsize(conf.ticks_labels_font_size+extra_ytick_label_size)
 
                 if "labels" in ticks[key]:
-                    plt.gca().yaxis.set_ticklabels(ticks[key]["labels"],minor=(key=="minor"),fontsize=conf.ticks_labels_font_size+extra_ytick_label_size)
+                    ax1.yaxis.set_ticklabels(ticks[key]["labels"],minor=(key=="minor"),fontsize=conf.ticks_labels_font_size+extra_ytick_label_size)
                     
                 if "params" in ticks[key]:
-                    zeplt.tick_params(axis='y',which=key,**ticks[key]["params"])
+                    ax1.tick_params(axis='y',which=key,**ticks[key]["params"])
+
+        if "twinx_ticks" in prepared_plots[plot]:
+            ticks=prepared_plots[plot]["twinx_ticks"]
+            for key in ticks:
+                if "range_step" in ticks[key]:
+                    twinx_ax.yaxis.set_ticks(np.arange(ticks[key]["from"],ticks[key]["to"],ticks[key]["range_step"]),minor=(key=="minor"))
+                elif "positions" in ticks[key]:
+                    twinx_ax.yaxis.set_ticks(ticks[key]["positions"],minor=(key=="minor"))
+
+                if "scalar" in ticks[key]:
+                    mike=ScalarFormatter()
+                    mike.set_powerlimits((-3, 4))
+                    if key=="minor":
+                        twinx_ax.yaxis.set_minor_formatter(mike)
+                    else:
+                        twinx_ax.yaxis.set_major_formatter(mike)
+                    twinx_ax.yaxis.get_offset_text().set_fontsize(conf.ticks_labels_font_size+extra_ytick_label_size)
+
+                if "labels" in ticks[key]:
+                    twinx_ax.yaxis.set_ticklabels(ticks[key]["labels"],minor=(key=="minor"),fontsize=conf.ticks_labels_font_size+extra_ytick_label_size)
+                    
+                if "params" in ticks[key]:
+                    twinx_ax.tick_params(axis='y',which=key,**ticks[key]["params"])
+
 
         for axis in ['top','bottom','left','right','polar', 'start', 'end', 'inner']:
             if axis in plt.gca().spines: 
-                plt.gca().spines[axis].set_linewidth(conf.general_plots_linewidth/2)
+                ax1.spines[axis].set_linewidth(conf.general_plots_linewidth/2)
+                if there_is_a_twin_too:
+                    twinx_ax.spines[axis].set_linewidth(conf.general_plots_linewidth/2)
+
                 
         
-        #lims
+        # #lims
+        # if "xmin" in prepared_plots[plot]:
+        #     plt.xlim(xmin=prepared_plots[plot]["xmin"])
+        # if "xmax" in prepared_plots[plot]:
+        #     plt.xlim(xmax=prepared_plots[plot]["xmax"])
+        # if "ymin" in prepared_plots[plot]:
+        #     plt.ylim(ymin=prepared_plots[plot]["ymin"])
+        # if "ymax" in prepared_plots[plot]:
+        #     plt.ylim(ymax=prepared_plots[plot]["ymax"])
+        # #lims
         if "xmin" in prepared_plots[plot]:
-            plt.xlim(xmin=prepared_plots[plot]["xmin"])
+            ax1.set_xlim(xmin=prepared_plots[plot]["xmin"])
         if "xmax" in prepared_plots[plot]:
-            plt.xlim(xmax=prepared_plots[plot]["xmax"])
+            ax1.set_xlim(xmax=prepared_plots[plot]["xmax"])
         if "ymin" in prepared_plots[plot]:
-            plt.ylim(ymin=prepared_plots[plot]["ymin"])
+            ax1.set_ylim(ymin=prepared_plots[plot]["ymin"])
         if "ymax" in prepared_plots[plot]:
-            plt.ylim(ymax=prepared_plots[plot]["ymax"])
+            ax1.set_ylim(ymax=prepared_plots[plot]["ymax"])
+        if "twinx_min" in prepared_plots[plot]:
+            twinx_ax.set_ylim(ymin=prepared_plots[plot]["twinx_min"])
+        if "twinx_max" in prepared_plots[plot]:
+            twinx_ax.set_ylim(ymax=prepared_plots[plot]["twinx_max"])
         
+
+        #### NOT WITH TWINX 
         #projection polar
         if 'axes_projection' in prepared_plots[plot]:
             if prepared_plots[plot]['axes_projection']=='polar':
@@ -1154,12 +1258,21 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             
         
         if "grid" in prepared_plots[plot]:
-            zeplt.grid(**prepared_plots[plot]["grid"])
-            plt.gca().set_axisbelow(True)
-        
+            ax1.grid(**prepared_plots[plot]["grid"])
+            ax1.set_axisbelow(True)
+            # if there_is_a_twin_too:
+                # grid on elder brother only, would otherwise require a twinx_grid or a grid:{"twinx":{}} param... and:
+                # twinx_ax.grid(**prepared_plots[plot]["twinx_grid"])
+                # twinx_ax.set_axisbelow(True)
+                # twinx_ax.set_zorder(0.4)
+                
+             
         if "axis_off" in prepared_plots[plot] and prepared_plots[plot]["axis_off"]:
-            plt.gca().set_axis_off()
+            ax1.set_axis_off()
             #zeplt.gca().xaxis.set_visible(False)
+            if there_is_a_twin_too:
+                twinx_ax.set_axis_off()
+            
 
         if "zoom_bbox" in prepared_plots[plot]:
 
@@ -1537,7 +1650,7 @@ if __name__ == '__main__':
     #docu({"plot":{"type","color_index","list"},"x_axis_label":{}},detailed=True)
     
     legend_example=[]
-    legend_example.append(mpl_lines.Line2D([],[],color='k',marker='+',linestyle='',fillstyle='none',mew=0.6,ms=8,label='bolos'))
+    legend_example.append(mpl_lines.Line2D([],[],color='k',marker='+',linestyle='',fillstyle='none',mew=0.6,ms=8,label='other legend'))
     
     some_data={
         0:{"values":{
@@ -1545,13 +1658,12 @@ if __name__ == '__main__':
                 1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
                 2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, },
             "colors":["red","green","blue"],
-            "plot_types":"example",
             "file_to_save":"example1.png",
             "format_to_save":"png", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
             "y_axis_label":"y label",
             "x_axis_label":"th x lbel",
-            "title":"the title of the plot",
+            "title":"title of the first plot",
             "legends":{"manual_legends":legend_example},
             "grid":{"which":'major',"axis":"both"},
             "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
@@ -1562,7 +1674,6 @@ if __name__ == '__main__':
             "xmin":3000,
             "ymin":-10200,                        
             "colors":["red","green","blue"],
-            "plot_types":"example",
             "file_to_save":"example1.tif",
             "format_to_save":"tif", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
@@ -1583,45 +1694,43 @@ if __name__ == '__main__':
                       "sb_size":"30%",
                       "sb_pad":"10%"
                   }},
-        143:{"values":{
-                0:{"type":"plot","y_values":4000*(-3.2-.46*np.log(.00001+np.sinc((0.0003*np.arange(1,10000))**6)**2)), 'color_index':0, 'legend':'plot 0'},
-                1:{"type":"plot","y_values":10000*np.sin(np.linspace(1,10000,9)),"x_values":range(10000,1000,-1000),"linestyle":'--'},},
-            "zoom_bbox":(-0.066,-0.9,0.1,-0.55),    
-            "zoom_bbox_dpi":200,
-            "y_ticks":{"major":{"scalar":True}},    
-            "xmin":3000,
-            "ymin":-10200,                        
-            "colors":["red","green","blue"],
-            "plot_types":"example",
-            "file_to_save":"example1.tif",
-            "format_to_save":"tif", ##png, pdf, ps, eps or svg.
-            "dir_to_save":"test_plots_gen",
-            "x_axis_label":"x label",
-            "y_axis_label":"y label",
-            "title":"long axes - scalar y",
-            "legends":{"manual_legends":legend_example},
-            "grid":{"which":'major',"axis":"both"},
-            "side_bar":{"values":{0:{"type":"scatter",'x_values':[0,-.25,.25,.5,0],'y_values':[1,3,7,15,25], 'color':["red","blue","green","orange","purple"], 's':90, "marker":'*'}}, 
-                      "xmin":-.5,
-                      "xmax":.5,
-                      "ymin":-1,          
-                      "ymax":27,
-                      "y_axis_label":"side bar plot label",
-                      "x_axis_label":"Val",
-                      "title":"side title",
-                      }},                              
+        # 1430:{"values":{
+        #         0:{"type":"plot","y_values":4000*(-3.2-.46*np.log(.00001+np.sinc((0.0003*np.arange(1,10000))**6)**2)), 'color_index':0, 'legend':'plot 0'},
+        #         1:{"type":"plot","y_values":10000*np.sin(np.linspace(1,10000,9)),"x_values":range(10000,1000,-1000),"linestyle":'--'},},
+        #     "zoom_bbox":(-0.066,-0.9,0.1,-0.55),    
+        #     "zoom_bbox_dpi":200,
+        #     "y_ticks":{"major":{"scalar":True}},    
+        #     "xmin":3000,
+        #     "ymin":-10200,                        
+        #     "colors":["red","green","blue"],
+        #     "file_to_save":"example1.tif",
+        #     "format_to_save":"tif", ##png, pdf, ps, eps or svg.
+        #     "dir_to_save":"test_plots_gen",
+        #     "x_axis_label":"x label",
+        #     "y_axis_label":"y label",
+        #     "title":"zoom bbox on long axes - scalar y",
+        #     "legends":{"manual_legends":legend_example},
+        #     "grid":{"which":'major',"axis":"both"},
+        #     "side_bar":{"values":{0:{"type":"scatter",'x_values':[0,-.25,.25,.5,0],'y_values':[1,3,7,15,25], 'color':["red","blue","green","orange","purple"], 's':90, "marker":'*'}}, 
+        #               "xmin":-.5,
+        #               "xmax":.5,
+        #               "ymin":-1,          
+        #               "ymax":27,
+        #               "y_axis_label":"side bar plot label",
+        #               "x_axis_label":"Val",
+        #               "title":"side title",
+        #               }},                              
         20:{"values":{
                 0:{"type":"plot","y_values":np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
                 1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
                 2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1], "linewidth":3}},
             "colors":["red","green","blue"],
-            "plot_types":"example",
             "file_to_save":"example1.png",
             "format_to_save":"png", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
             "y_axis_label":"y label",
             "x_axis_label":"th x lbel",
-            "title":"plot",
+            "title":"plot no_padding for all in same page",
             "legends":{"manual_legends":legend_example},
             "no_padding":True, #for all plots in page being its last
             "grid":{"which":'major',"axis":"both"},
@@ -1631,13 +1740,12 @@ if __name__ == '__main__':
                 1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
                 2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, },
             "colors":["red","green","blue"],
-            "plot_types":"example",
             "file_to_save":"example1.png",
             "format_to_save":"png", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
             "y_axis_label":"y label",
             "x_axis_label":"th x lbel",
-            "title":"semilogx and plot",
+            "title":"semilogx and reverted plot",
             "legends":{"manual_legends":legend_example},
             "grid":{"which":'major',"axis":"both"},
             "color_bar":{
@@ -1651,7 +1759,6 @@ if __name__ == '__main__':
                 1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
                 2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, },
             "colors":["red","green","blue"],
-            "plot_types":"example",
             "file_to_save":"example1.png",
             "format_to_save":"png", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
@@ -1667,16 +1774,16 @@ if __name__ == '__main__':
                 1:{"type":"plot","y_values":np.log(range(1,10)),"x_values":range(10,1,-1),"linestyle":'--'},
                 2:{"type":"vline","x_pos":4.4, 'y_axis_prop_range':[0.1,0.6], "dashes":[5,1]}, },
             "colors":["red","green","blue"],
-            "plot_types":"example",
             "file_to_save":"example1.png",
             "format_to_save":"png", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
             "y_axis_label":"y label",
             "x_axis_label":"th x lbel",
-            "title":"loglog and plot",
+            "title":"loglog, titlepad, top legend\nand layout_padding for page",
             "titlepad":30,
+            # "tight_layout":True,
             "legends":{
-            	"manual_legends":legend_example,
+                "manual_legends":legend_example,
                 "legend_loc":"center",
                 "legend_labels_font_size":13, 
                 "legend_args":{"handlelength":4,"labelspacing":3,"ncol":5},
@@ -1692,13 +1799,12 @@ if __name__ == '__main__':
                 6:{"type":"bar","center":6.7, 'height':2., 'width':1.5, "bottom":1., "color":"red", "linewidth":4.,"edgecolor":'none'},
                 7:{"type":"bar","center":4.75, 'height':1., 'width':1, "bottom":0.25, "color":"green", "linewidth":0.02,"edgecolor":'green',"facecolor":'none'},},
             "colors":["red","green","blue"],
-            "plot_types":"example",
             "file_to_save":"example2.png",
             "format_to_save":"png", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
             "y_axis_label":"y label",
             "x_axis_label":"th x lbel",
-            "title":"the title of the plot",
+            "title":"Various rectangular zones",
             "legends":{"manual_legends":legend_example},
             "grid":{"which":'major',"axis":"both"},
             "color_bar":{"default_bounds":True}},
@@ -1707,7 +1813,6 @@ if __name__ == '__main__':
                 8:{"type":"text","x":2, 'y':4.5, "text":"Bonzai",},
                 9:{"type":"annotate","text":"Bonzai annotated","pos":(4.,4.)},},
             "colors":["red","green","blue"],
-            "plot_types":"example",
             "file_to_save":"example3.png",
             "format_to_save":"png", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
@@ -1723,7 +1828,6 @@ if __name__ == '__main__':
                 11:{"type":"table","rows":['1', '2','3'], 'cols':['a', 'b'], "matrix":[['1a', '1b'], ['2a', '2b'], ['3a', '3b']],
                        "line_width_prop":0.5,"col_height_prop":0.5,"label_params":{"ylab_height_prop":0.1, "edges_off":True}}},
             "colors":["red","green","blue"],
-            "plot_types":"example",
             "file_to_save":"example4.png",
             "format_to_save":"png", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
@@ -1734,18 +1838,17 @@ if __name__ == '__main__':
             "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
         1:{"values":{
                 0:{"type":"scatter",'x_values':[5,6,7],'y_values':[1,5,2], 'color_index':0, 's':60, 'legend':'black 128'},
-                1:{"type":"scatter",'x_values':[4,5,3],'y_values':[1.5,5.5,1.6], 'color_index':1, 's':90, "marker":r'$\beta$', 'legend':'red scatter, no?'}}, 
-            "plot_types":"scatter",
+                1:{"type":"scatter",'x_values':[4,5,3],'y_values':[1.5,5.5,1.6], 'color_index':1, 's':90, "marker":r'$\beta$', 'legend':'red beta scatter'}}, 
             "file_to_save":"scatter_example.png",
             "format_to_save":"png", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
             "y_axis_label":"scat y label",
             "x_axis_label":"scat x lbel",
-            "title":"double scatter example 1",
+            "title":"scatter example 1",
             "legends":{"italic_legends":True}},
         2:{"values":{
-                0:{"type":"boxplot",'x_values':[5,6,7],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.7, "color":"green", "linewidth":3., 'fill':True, 'legend':'AHAHAH?'},
-                1:{"type":"boxplot",'x_values':[1,2,3],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.37, "color":"purple", 'legend':'red, no?'}, 
+                0:{"type":"boxplot",'x_values':[5,6,7],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.7, "color":"green", "linewidth":3., 'fill':True, 'legend':'Green 5,6,7'},
+                1:{"type":"boxplot",'x_values':[1,2,3],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.37, "color":"purple", 'legend':'Purple 123'}, 
                 2:{"type":"boxplot",
                     'x_values':[9,10,11],
                     'y_sets': [[2,5,2],[3,7,2,15],[2,5,4]],
@@ -1782,13 +1885,12 @@ if __name__ == '__main__':
                     "linestyle":':',
                     "linewidth":1.2,
                     }},                            
-            "plot_types":"boxplot",
             "file_to_save":"boxplot_example.png",
             "format_to_save":"png", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
-            "y_axis_label":"bop y label",
-            "x_axis_label":"ejhsrguezv x lbel",
-            "title":"double boxplot example",
+            "y_axis_label":"boxplot y label",
+            "x_axis_label":"boxplot x label",
+            "title":"various boxplot examples",
             "legends":{"italic_legends":True},
             "x_ticks":{"major":{"range_step":1, "from":1, "to":8,
                               "labels":["b",'a',2]+['']*4,
@@ -1806,18 +1908,17 @@ if __name__ == '__main__':
             "ymax":20,
             "tight_layout":True},
         3:{"values":{
-                0:{"type":"scatter",'x_values':[5,6,7],'y_values':[1,5,2], 'color_index':0, 'legend':'black 128'},
-                1:{"type":"scatter",'x_values':[4,5,3],'y_values':[1.5,5.5,1.6], 'color_index':1, 'legend':'red scatter, no?'},
-                2:{"type":"boxplot",'x_values':[5,6,7],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.7, 'fill':True, 'legend':'AHAHAH?'},
-                3:{"type":"boxplot",'x_values':[1,2,3],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.37, "color":"purple", 'legend':'red, no?'},
+                0:{"type":"scatter",'x_values':[5,6,7],'y_values':[1,5,2], 'color_index':0, 'legend':'black dots'},
+                1:{"type":"scatter",'x_values':[4,5,3],'y_values':[1.5,5.5,1.6], 'color_index':1, 'legend':'red dots'},
+                2:{"type":"boxplot",'x_values':[5,6,7],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.7, 'fill':True, 'legend':'box median 567'},
+                3:{"type":"boxplot",'x_values':[1,2,3],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.37, "color":"purple", 'legend':'Purple 123'},
                 4:{"type":"plot","y_values":np.log(range(1,10))}}, 
-            "plot_types":"multi",
             "file_to_save":"multi_example.png",
             "format_to_save":"png", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
-            "y_axis_label":"scat y label",
-            "x_axis_label":"scat x lbel",
-            "title":"double scatter example 2",
+            "y_axis_label":"no axis y label",# no label
+            "x_axis_label":"large x axis",
+            "title":"Large example, no axis",
             "legends":{"italic_legends":True,
                      "legend_loc":"best"}, #right, center left, upper right, lower right, best, center, lower left, center right, upper left, upper center, lower center
             "x_ticks":{"major":{"range_step":1, "from":0, "to":10}},
@@ -1835,7 +1936,6 @@ if __name__ == '__main__':
                         zorder=10
                         ),
                     "color":"orange"}}, 
-            "plot_types":"as:kjghzlrbg",
             "file_to_save":"arrow.png",
             "format_to_save":"png", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
@@ -1850,7 +1950,6 @@ if __name__ == '__main__':
             1:{"type":"plot","y_values":20+10*np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
             2:{"type":"polar","r_values":[0, 20, 15], "theta_values":[0,np.pi/4+1,np.pi/8+1],  'color_index':1, "linewidth":4., 'legend':'plt.polar'},
         }, 
-        "plot_types":"aekufhqilruy",
         "axes_projection":"polar",
         "title":"Polar plots",
         "theta_min":-np.pi/4, 
@@ -1862,18 +1961,17 @@ if __name__ == '__main__':
         "axes_projection":"polar",
         "rmax":7,
         "values":{
-            0:{"type":"scatter",'x_values':[5,6,7],'y_values':[1,5,2], 'color_index':0, 'legend':'black 128'},
-            1:{"type":"scatter",'x_values':[4,5,3],'y_values':[1.5,5.5,1.6], 'color_index':1, 'legend':'red scatter, no?'},
-            2:{"type":"boxplot",'x_values':[5,6,7],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.7, 'fill':True, 'legend':'AHAHAH?'},
-            3:{"type":"boxplot",'x_values':[1,2,3],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.37, "color":"purple", 'legend':'red, no?'},
+            0:{"type":"scatter",'x_values':[5,6,7],'y_values':[1,5,2], 'color_index':0, 'legend':'black dots'},
+            1:{"type":"scatter",'x_values':[4,5,3],'y_values':[1.5,5.5,1.6], 'color_index':1, 'legend':'red dots'},
+            2:{"type":"boxplot",'x_values':[5,6,7],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.7, 'fill':True, 'legend':'box median 567'},
+            3:{"type":"boxplot",'x_values':[1,2,3],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.37, "color":"purple", 'legend':'Purple 123'},
             4:{"type":"plot","y_values":np.log(range(1,10))}}, 
-        "plot_types":"multi",
         "file_to_save":"multi_example.png",
         "format_to_save":"png", ##png, pdf, ps, eps or svg.
         "dir_to_save":"test_plots_gen",
-        "y_axis_label":"scat y label",
-        "x_axis_label":"scat x lbel",
-        "title":"double scatter example 2",
+        "y_axis_label":"multi polar y label",
+        "x_axis_label":"multi polar x lbel",
+        "title":"multi polar no axis",
         "legends":{
             "italic_legends":True,
             "legend_loc":"best"}, #right, center left, upper right, lower right, best, center, lower left, center right, upper left, upper center, lower center
@@ -1882,9 +1980,9 @@ if __name__ == '__main__':
 
     some_data[25]={"values":{
             0:{"type":"violinplot",'x_values':[5,6,7],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.7, 
-                "color":"green", "linewidth":3., 'fill':True, 'legend':'AHAHAH?'},
+                "color":"green", "linewidth":3., 'fill':True, 'legend':'Green violin'},
             1:{"type":"violinplot",'x_values':[1,2,3],'y_sets':[[1,5,2],[1,7,2],[1,5,4]], 'x_size':0.37, 
-                "color":"purple", 'legend':'red, no?',"violin_edge_width":8}, 
+                "color":"purple", 'legend':'purple violin',"violin_edge_width":8}, 
             2:{"type":"violinplot",
                 'x_values':[9,10,11],
                 'y_sets': [[2,5,2],[3,7,2,15],[2,5,4]],
@@ -1913,7 +2011,6 @@ if __name__ == '__main__':
                 "linewidth":1.2,
                 'color':"blue",
                 }},                            
-        "plot_types":"violinplot",
         "file_to_save":"violinplot_example.png",
         "format_to_save":"png", ##png, pdf, ps, eps or svg.
         "dir_to_save":"test_plots_gen",
@@ -1940,7 +2037,7 @@ if __name__ == '__main__':
     #twinx example
     some_data[44]={
         "values":{
-            0:{"type":"plot","y_values":[0, 20, 15], "x_values":[0,np.pi/4,np.pi/8],  'color':'purple', "linewidth":4., 'legend':'plot'},
+            0:{"type":"plot","y_values":[0, 20, 15], "x_values":[0,np.pi/4,np.pi/8],  'color':'purple', "linewidth":4.},
             1:{"type":"plot","y_values":20+10*np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
             9:{"type":"annotate","text":"4,4","pos":(4.,4.),"va":'center', "ha":'center', "color":'purple'},
         }, 
@@ -1949,20 +2046,122 @@ if __name__ == '__main__':
             9:{"type":"annotate","text":"4,4 twin","pos":(4.,4.),"va":'center', "ha":'center', 'color':'red'},
             # 1:{"type":"plot","y_values":20+10*np.log(range(1,10)), 'color_index':0, 'legend':'plot 0'},
         },
-        "plot_types":"aekufhqilruy",
-        "title":"Twinx plots",        
+        "title":"Twinx plots",    
+        "y_ticks":{"major":{"positions":[15,30,44]}},
+        "twinx_ticks":{"major":{"positions":[3,6,9.4]}},
+        "y_axis_label":"My notwinx_axis_label",    
+        "twinx_axis_label":"My twinx_axis_label",   
+        "ymax":44, 
+        "twinx_max":22, 
         "legends":{"italic_legends":True},
     }
 
-    #empty/blank plot
+    xvals1=np.sort(20*rng.random(70))
+    xvals2=np.sort(20*rng.random(80))
+    yvals1=np.sort(20*rng.random(70))
+    yvals2=np.sort(20*rng.random(80))
+
+    yvals1[:10]=np.arange(10,0,-1)#-yvals1[:10]
+    yvals2[-10:]=np.arange(20,10,-1)#-yvals1[:10]
+
+    bigx=np.concatenate((xvals1,xvals2[::-1]))
+    bigy=np.concatenate((yvals1,yvals2[::-1]))
+
+
+    # plt.plot(xvals1, yvals1)
+    # plt.plot(xvals2, yvals2)
+    # plt.fill_between(bigx, bigy, 0, facecolor='thistle',interpolate=True)
+    # https://matplotlib.org/3.5.0/gallery/lines_bars_and_markers/fill_between_demo.html
+
     some_data[45]={
+        "values":{
+            0:{"type":"plot","y_values":yvals1, "x_values":xvals1,  'color':'red', "linewidth":4},
+            1:{"type":"plot","y_values":yvals2, "x_values":xvals2,  'color':'blue'},
+            2:{"type":"fill_between",
+                "y_values1":bigy, 
+                # "y_values2":[0, 20, 15], 
+                "x_values":bigx,  
+                'facecolor':'thistle', "interpolate":True, 'legend':'filled area'},
+        }, 
+        "axis_off":True
+    }
+
+    # simple pcolormesh
+
+
+    cmaplocal=plt.cm.get_cmap("Spectral_r").copy()
+    cmaplocal.set_under("white")
+    cmaplocal.set_over("k")
+    cmaplocal.set_bad("pink")
+
+    colorlist_local=cmaplocal(np.linspace(0,1,16,endpoint=True))
+
+    vmin,vmax=.1,.9
+
+    some_data[46]={
+        "values":{
+            0:{
+                "type":"simple_pcolormesh",
+
+                "array":rng.random((30,30)),
+                "vmin":vmin,
+                "vmax":vmax,
+                "cmap":cmaplocal,
+                    
+            },
+        }, 
+
+        "color_bar":{
+            "color_bounds":np.linspace(vmin,vmax,len(colorlist_local)+1,endpoint=True),
+            "color_list":colorlist_local,
+            "y_axis_label":"colors",
+        },
+        "title":"simple_pcolormesh",
+        "axis_off":True
+    }
+
+
+    #empty/blank plot
+    some_data[145]={
         "values":{
         }, 
         "axis_off":True
     }
 
+
+
+    zoom_data={
+        1430:{"values":{
+                0:{"type":"plot","y_values":4000*(-3.2-.46*np.log(.00001+np.sinc((0.0003*np.arange(1,10000))**6)**2)), 'color_index':0, 'legend':'plot 0'},
+                1:{"type":"plot","y_values":10000*np.sin(np.linspace(1,10000,9)),"x_values":range(10000,1000,-1000),"linestyle":'--'},},
+            "zoom_bbox":(-0.066,-0.9,0.1,-0.55),    
+            "zoom_bbox_dpi":200,
+            "y_ticks":{"major":{"scalar":True}},    
+            "xmin":3000,
+            "ymin":-10200,                        
+            "colors":["red","green","blue"],
+            "file_to_save":"example1.tif",
+            "format_to_save":"tif", ##png, pdf, ps, eps or svg.
+            "dir_to_save":"test_plots_gen",
+            "x_axis_label":"x label",
+            "y_axis_label":"y label",
+            "title":"zoom bbox on long axes - scalar y",
+            "legends":{"manual_legends":legend_example},
+            "grid":{"which":'major',"axis":"both"},
+            "side_bar":{"values":{0:{"type":"scatter",'x_values':[0,-.25,.25,.5,0],'y_values':[1,3,7,15,25], 'color':["red","blue","green","orange","purple"], 's':90, "marker":'*'}}, 
+                      "xmin":-.5,
+                      "xmax":.5,
+                      "ymin":-1,          
+                      "ymax":27,
+                      "y_axis_label":"side bar plot label",
+                      "x_axis_label":"Val",
+                      "title":"side title",
+                      }},
+    }
+
+
     len_data=len(some_data)
-    some_data_keys=list(some_data.keys())
+    # some_data_keys=list(some_data.keys())
 #    for plot_id in some_data_keys:
 ##        for val_id in some_data[plot_id]["values"]:
 ##            some_data[10*plot_id+val_id+len_data]=dict(some_data[plot_id])
@@ -1973,7 +2172,10 @@ if __name__ == '__main__':
     prepared_plots=prepare_plots(some_data)
     plot_indivs(prepared_plots,show=False,file_to_save=None,dir_to_save=None,PDF_to_add=None,user_defined_dpi=100)
 
+    prepared_zoom_plots=prepare_plots(zoom_data)
+
     pp1 = PdfPages('plottings.pdf')
     plot_pages(prepared_plots, nb_plots_hor=2, nb_plots_vert=2, grid_specs=[(0,slice(None,None)),(1,0),(1,1)], show=False, file_to_save="plottings", format_to_save='svg', dir_to_save="test_plots_gen", PDF_to_add=pp1,user_defined_dpi=100)
+    plot_pages(prepared_zoom_plots, nb_plots_hor=1, nb_plots_vert=1, show=False, PDF_to_add=pp1,user_defined_dpi=100)    
     pp1.close()
     
