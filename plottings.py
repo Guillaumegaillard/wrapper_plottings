@@ -1037,7 +1037,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             extra_xtick_label_size=prepared_plots[plot]["extra_xtick_label_size"]
         extra_ytick_label_size=0
         if "extra_ytick_label_size" in prepared_plots[plot]:
-            extra_xtick_label_size=prepared_plots[plot]["extra_ytick_label_size"]   
+            extra_ytick_label_size=prepared_plots[plot]["extra_ytick_label_size"]   
                  
         #https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.tick_params.html#matplotlib.axes.Axes.tick_params
         #default tick params
@@ -1442,7 +1442,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 path_to_save=dir_to_save+"/"+path_to_save
                 if not os.path.exists(dir_to_save):
                     os.makedirs(dir_to_save)
-            plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi,bbox_inches='tight')
+            plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi,bbox_inches='tight',pad_inches=0)
             # plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi)
         elif (not from_page) and "file_to_save" in prepared_plots[plot] and "format_to_save" in prepared_plots[plot]:
             path_to_save=prepared_plots[plot]["file_to_save"]
@@ -1465,7 +1465,8 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
 def plot_pages(
     prepared_plots, nb_plots_hor=3, nb_plots_vert=2, grid_specs=[], show=False,
     file_to_save=None,format_to_save=None,dir_to_save=None,
-    PDF_to_add=None, user_defines_size=False,user_defined_size=conf.figsize,user_defined_dpi=conf.dpi,
+    PDF_to_add=None, user_defines_size=False, user_defined_size=conf.figsize, user_defined_dpi=conf.dpi,
+    user_defines_title_and_axes_labelpad=False, user_defined_title_and_axes_labelpad=conf.title_and_axes_labelpad,
     page_info="",
     user_defined_tlfs=-1,
     user_defined_alfs=-1
@@ -1481,6 +1482,10 @@ def plot_pages(
     if user_defines_size:
         conf.set_figsize(user_defined_size)
 
+    if user_defines_title_and_axes_labelpad:
+        conf.set_title_and_axes_labelpad(user_defined_title_and_axes_labelpad)        
+
+    
     if user_defined_tlfs!=-1:
         conf.update_ticks_labels_font_size(user_defined_tlfs)
 
@@ -1558,7 +1563,7 @@ def plot_pages(
                 path_to_save=dir_to_save+"/"+path_to_save
                 if not os.path.exists(dir_to_save):
                     os.makedirs(dir_to_save)
-            plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi,bbox_inches='tight')
+            plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi,bbox_inches='tight',pad_inches=0)
             # plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi)
         if PDF_to_add:
             plt.savefig(PDF_to_add,format="pdf", dpi=user_defined_dpi)

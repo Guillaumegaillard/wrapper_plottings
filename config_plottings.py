@@ -96,9 +96,13 @@ plot_params={"plot":{"linewidth":general_plots_linewidth},
 
 
 
-def set_figsize(user_defined_fixed_size):   #Fixed figure setting
+def set_figsize(user_defined_fixed_size):   #Change figure setting
     global figsize
     figsize=user_defined_fixed_size
+
+def set_title_and_axes_labelpad(user_defined_title_and_axes_labelpad):   #Change labelpad setting
+    global title_and_axes_labelpad
+    title_and_axes_labelpad=user_defined_title_and_axes_labelpad    
 
 def update(subp=1):   #FIGURE
     global figsize,dpi,axes_labels_font_size,legend_labels_font_size,ticks_labels_font_size,title_font_size,title_and_axes_labelpad
