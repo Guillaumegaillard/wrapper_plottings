@@ -57,7 +57,7 @@ details["plot_params"]["x_axis_label"]="""Opt. arguments fontsize, font dict, an
 plot_params["y_axis_label"]="""The label corresponding to the y_axis."""
 details["plot_params"]["y_axis_label"]="""Opt. Arguments fontsize, font dict, and label pad are set according to config_plotting parameters."""    
 plot_params["title"]="""The title of the plot.\n Default: none."""
-details["plot_params"]["title"]="""Opt. Arguments fontsize and titlepad (using rcParams or y) are set according to config_plotting parameters.\n
+details["plot_params"]["title"]="""Opt. Arguments fontsize and title_pad (using rcParams or y) are set according to config_plotting parameters.\n
 Arguments 'verticalalignment': 'baseline' and 'horizontalalignment': "center" are default ones."""
 plot_params["legends"]="""The legend/label configuration of the plot.\n Default: ['black','red']"""
 details["plot_params"]["legends"]="""Param legend_loc controls the location of the legend in the plot. Default location of legend is 'best'.
@@ -297,7 +297,7 @@ def prepare_plots(plot_data):
                       "twinx_max",
                       "twinx_min",
                       "title",
-                      "titlepad",
+                      "title_params",
                       "legends",
                       "x_ticks",
                       "y_ticks",
@@ -967,16 +967,42 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             else:
                 zeplt.ylabel(prepared_plots[plot]["y_axis_label"],fontsize=conf.axes_labels_font_size,labelpad=conf.title_and_axes_labelpad,**conf.used_font)
         if "title" in prepared_plots[plot]:
-            fontdict={'fontsize': conf.title_font_size,'verticalalignment': 'baseline','horizontalalignment': "center"}
-            if "titlepad" in prepared_plots[plot]:
-                titlepad=prepared_plots[plot]["titlepad"]
-                plt.title(prepared_plots[plot]["title"],fontdict=fontdict, pad=titlepad)
-            elif 'axes.titlepad' in rcParams.keys():
-                rcParams['axes.titlepad'] = conf.title_and_axes_labelpad 
-                plt.title(prepared_plots[plot]["title"],fontdict=fontdict)
-            else:
-                #plt.title(prepared_plots[plot]["title"],fontdict=fontdict, y=1.+conf.title_and_axes_labelpad/(72.*fig.get_size_inches()[1]))
-                plt.title(prepared_plots[plot]["title"],fontdict=fontdict, y=1.+conf.title_and_axes_labelpad/(72.*conf.figsize[1]))
+            fontdict={'fontsize': conf.title_font_size,'verticalalignment': 'center','horizontalalignment': "center"}
+            title_rotation='horizontal'
+            title_x=.5
+            title_y=1.+conf.title_and_axes_labelpad/(72.*conf.figsize[1])
+            # title_y=1.+conf.title_and_axes_labelpad/(72.*plt.gcf().get_size_inches()[1])
+            title_pad=0
+
+            if 'axes.titlepad' in rcParams.keys():
+                rcParams['axes.titlepad'] = conf.title_and_axes_labelpad
+                title_pad = conf.title_and_axes_labelpad
+                title_y=1.
+
+            if "title_params" in prepared_plots[plot]:
+                if "title_pad" in prepared_plots[plot]["title_params"]:
+                    title_pad=prepared_plots[plot]["title_params"]["title_pad"]
+                    title_y=1.
+
+                if "title_rotation" in prepared_plots[plot]["title_params"]:
+                    title_rotation=prepared_plots[plot]["title_params"]["title_rotation"]
+                if "title_x" in prepared_plots[plot]["title_params"]:
+                    title_x=prepared_plots[plot]["title_params"]["title_x"]
+                if "title_y" in prepared_plots[plot]["title_params"]:
+                    title_y=prepared_plots[plot]["title_params"]["title_y"]
+
+                if "title_font_size" in prepared_plots[plot]["title_params"]:
+                    fontdict["fontsize"]=prepared_plots[plot]["title_params"]["title_font_size"]
+
+
+            plt.title(
+                prepared_plots[plot]["title"],
+                fontdict=fontdict,
+                rotation=title_rotation,
+                x=title_x,
+                y=title_y,
+                pad=title_pad)
+
     
         if "colors" in prepared_plots[plot]:
             colors=prepared_plots[plot]["colors"]
@@ -1463,7 +1489,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 
             
 def plot_pages(
-    prepared_plots, nb_plots_hor=3, nb_plots_vert=2, grid_specs=[], show=False,
+    prepared_plots, nb_plots_hor=3, nb_plots_vert=2, grid_specs=[], page_specs={}, show=False,
     file_to_save=None,format_to_save=None,dir_to_save=None,
     PDF_to_add=None, user_defines_size=False, user_defined_size=conf.figsize, user_defined_dpi=conf.dpi,
     user_defines_title_and_axes_labelpad=False, user_defined_title_and_axes_labelpad=conf.title_and_axes_labelpad,
@@ -1512,7 +1538,27 @@ def plot_pages(
         print("setting page {0}/{1}... {2}".format(page_id+1,nb_pages,page_info))
         
         pfig=plt.figure(num=page_id, figsize=conf.figsize, dpi=user_defined_dpi)
-        gs = pfig.add_gridspec(nb_plots_vert, nb_plots_hor)
+        if len(page_specs) == 0:
+            gs = pfig.add_gridspec(nb_plots_vert, nb_plots_hor)
+            # gs = pfig.add_gridspec(nb_plots_vert, nb_plots_hor, left=0.0, right=1., wspace=0.0, hspace=0.)
+        else:
+            gs_left = page_specs["left"] if "left" in page_specs else 0.05
+            gs_right = page_specs["right"] if "right" in page_specs else .95
+            gs_bottom = page_specs["bottom"] if "bottom" in page_specs else 0.05
+            gs_top = page_specs["top"] if "top" in page_specs else .95
+            gs_wspace = page_specs["wspace"] if "wspace" in page_specs else 0.1
+            gs_hspace = page_specs["hspace"] if "hspace" in page_specs else 0.1
+
+            gs = pfig.add_gridspec(
+                nb_plots_vert, nb_plots_hor,
+                left=gs_left,
+                right=gs_right,
+                bottom=gs_bottom,
+                top=gs_top,
+                wspace=gs_wspace,
+                hspace=gs_hspace)
+
+        # gs.tight_layout(pfig,pad=10)
         
         for plot_index in range(len(sppk)):
             plot=sppk[plot_index]
@@ -1538,7 +1584,9 @@ def plot_pages(
                 try:
                     if (
                         not ("zoom_bbox" in prepared_plots[plot]) 
-                        and not ("tight_layout" in prepared_plots[plot] and not prepared_plots[plot]["tight_layout"])):
+                        and not ("tight_layout" in prepared_plots[plot] and not prepared_plots[plot]["tight_layout"])
+                        and (len(page_specs) == 0) # not compat, so I choose page_specs get precedence over tight_layout
+                        ):
                         if 'axes_projection' in prepared_plots[plot]: ##labels seem not to be considered by tight_layout in that case
                             plt.tight_layout(w_pad=1.5, h_pad=1.5)
                         elif 'no_padding' in prepared_plots[plot]:
@@ -1546,6 +1594,7 @@ def plot_pages(
                         else:
                             layout_padding=prepared_plots[plot]["layout_padding"] if "layout_padding" in prepared_plots[plot] else {}
                             plt.tight_layout(**layout_padding)
+
                 except:
                     print("Tight Layout failed for page {0} plot {1}".format(page_id+1,plot_id))
 
@@ -1785,7 +1834,7 @@ if __name__ == '__main__':
             "y_axis_label":"y label",
             "x_axis_label":"th x lbel",
             "title":"loglog, titlepad, top legend\nand layout_padding for page",
-            "titlepad":30,
+            "title_params":{"title_pad":60},
             # "tight_layout":True,
             "legends":{
                 "manual_legends":legend_example,
@@ -1794,7 +1843,7 @@ if __name__ == '__main__':
                 "legend_args":{"handlelength":4,"labelspacing":3,"ncol":5},
                 "bbox_to_anchor":(0.51,1.08),
             },            
-            "layout_padding":{"w_pad":0, "h_pad":2, "pad":5}, #inter plot in weight, inter plot in height, plot(s) to page for all plots in page being its last
+            "layout_padding":{"w_pad":0, "h_pad":2, "pad":3}, #inter plot in weight, inter plot in height, plot(s) to page for all plots in page being its last
             "grid":{"which":'major',"axis":"both"},
             "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
         4:{"values":{
@@ -2181,6 +2230,16 @@ if __name__ == '__main__':
 
     pp1 = PdfPages('plottings.pdf')
     plot_pages(prepared_plots, nb_plots_hor=2, nb_plots_vert=2, grid_specs=[(0,slice(None,None)),(1,0),(1,1)], show=False, file_to_save="plottings", format_to_save='svg', dir_to_save="test_plots_gen", PDF_to_add=pp1,user_defined_dpi=100)
-    plot_pages(prepared_zoom_plots, nb_plots_hor=1, nb_plots_vert=1, show=False, PDF_to_add=pp1,user_defined_dpi=100)    
+    plot_pages(prepared_zoom_plots, nb_plots_hor=1, nb_plots_vert=1, show=False, PDF_to_add=pp1,user_defined_dpi=100)
+    plot_pages({0:prepared_plots[46]}, nb_plots_hor=1, nb_plots_vert=1,
+        page_specs={
+            "left":0.,
+            "right":.9,
+            "bottom":0.1,
+            "top":1,
+            "wspace":0.5,
+            "hspace":0.5
+        },
+        show=False, PDF_to_add=pp1,user_defined_dpi=100)
     pp1.close()
     
