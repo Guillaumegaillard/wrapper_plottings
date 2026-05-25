@@ -1,10 +1,10 @@
-#!/usr/bin/python2.7
 # -*- coding: utf8 -*-
 '''
 Created on 15 sept. 2017
-
 @author: Guillaume Gaillard
+MIT License: https://github.com/Guillaumegaillard/wrapper_plottings/blob/master/LICENSE
 '''
+
 
 ##########SPECIFIC PUBLICATIONS PARAMETERS
 fig_profile="A4"
