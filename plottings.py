@@ -481,17 +481,25 @@ def prepare_idv_values(vals_dict):
         if ptype=="table":
                             
             plot_func["cellText"]=vals_dict[cloud]["matrix"]
-            plot_func["rowLabels"]=vals_dict[cloud]["rows"]
-            plot_func["colLabels"]=vals_dict[cloud]["cols"]
-            plot_func["args"]={"nb_rows":len(plot_func["rowLabels"]),
-                               "nb_cols":len(plot_func["colLabels"])}                   
-            
+            if "rows" in vals_dict[cloud]:
+                plot_func["rowLabels"]=vals_dict[cloud]["rows"]
+            if "cols" in vals_dict[cloud]:
+                plot_func["colLabels"]=vals_dict[cloud]["cols"]
+
+            plot_func["args"]={"nb_rows":len(vals_dict[cloud]["matrix"]),
+                               "nb_cols":len(vals_dict[cloud]["matrix"][0]) if len(vals_dict[cloud]["matrix"])>0 else 0}
+
+            nb_cols=plot_func["args"]["nb_cols"]
             if "line_width_prop" in vals_dict[cloud]:
-                nb_cols=plot_func["args"]["nb_cols"]                    
                 plot_func["colWidths"]=[1.*vals_dict[cloud]["line_width_prop"]/(nb_cols)]*nb_cols
-#                 if "colWidths" in vals_dict[cloud]:
-#                     plot_func["colWidths"]=vals_dict[cloud]["colWidths"]
-            
+            if "auto_set_column_width" in vals_dict[cloud]:
+                plot_func["args"]["auto_set_column_width"] = vals_dict[cloud]["auto_set_column_width"]
+            if "auto_set_font_size" in vals_dict[cloud] and vals_dict[cloud]["auto_set_font_size"]:
+                plot_func["args"]["auto_set_font_size"] = vals_dict[cloud]["auto_set_font_size"]
+
+            if "colWidths" in vals_dict[cloud]:
+                plot_func["colWidths"]=vals_dict[cloud]["colWidths"]
+
             if "col_height_prop" in vals_dict[cloud]:
                 nb_rows=plot_func["args"]["nb_rows"]                    
                 plot_func["args"]["rowHeights"]=[1.*vals_dict[cloud]["col_height_prop"]/(nb_rows)]*nb_rows
@@ -504,7 +512,7 @@ def prepare_idv_values(vals_dict):
             if "label_params" in vals_dict[cloud]:
                 plot_func["args"]["label_params"]=vals_dict[cloud]["label_params"]
             
-            prepared_params+=["rows","cols","matrix","line_width_prop","col_height_prop","fontsize", "label_params", "rowHeights"]
+            prepared_params+=["rows","cols","matrix","line_width_prop","col_height_prop","fontsize", "label_params", "rowHeights","colWidths","auto_set_column_width","auto_set_font_size"]
             
         if ptype == "fill_between":
             plot_func["args"]=[vals_dict[cloud]["x_values"],vals_dict[cloud]["y_values1"]]
@@ -579,12 +587,16 @@ def plot_functions(plot_functions,colors,zeplt,should_be_legended=False):
                     if "fontsize" in plot_func["args"]:
                         cell._text.set_fontsize(plot_func["args"]["fontsize"])
                     if "color" in kawargs:
-                        cell._text.set_color(kawargs["color"])                            
+                        cell._text.set_color(kawargs["color"])
+                    if "colWidths" in plot_func["args"]:
+                        cell.set_width(plot_func["args"]["colWidths"][key[0]-1])
                  
                 if key[0] in range(1,nb_rows+1) and key[1] == -1:
                     cell._text.set_text(' '+cell._text.get_text()+' ')
                     if "rowHeights" in plot_func["args"]:
                         cell.set_height(plot_func["args"]["rowHeights"][key[0]-1])
+                    if "colWidths" in plot_func["args"]:
+                        cell.set_width(plot_func["args"]["colWidths"][key[0]-1])
                     if "label_params" in plot_func["args"]:
                         if "edges_off" in plot_func["args"]["label_params"] and plot_func["args"]["label_params"]["edges_off"]:
                             cell.set_linewidth(0)
@@ -595,6 +607,12 @@ def plot_functions(plot_functions,colors,zeplt,should_be_legended=False):
                         if "edges_off" in plot_func["args"]["label_params"] and plot_func["args"]["label_params"]["edges_off"]:
                             cell.set_linewidth(0)
 
+            if "auto_set_column_width" in plot_func["args"]:
+                for colid in plot_func["args"]["auto_set_column_width"]:
+                    if abs(colid)<nb_cols:
+                        the_table.auto_set_column_width(colid)
+            if "auto_set_font_size" in plot_func["args"]:
+                the_table.auto_set_font_size()
         
         if plot_func["func_name"]=="text":
             zeplt.text(*plot_func["args"], **kawargs)
@@ -952,12 +970,89 @@ def plot_functions(plot_functions,colors,zeplt,should_be_legended=False):
 
 
 
-def plot_indivs_multiproc(prepared_plots,show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=False, in_ax=None,user_defined_dpi=conf.dpi, file_pad_inches = 0.04):
+def prepare_radar_plot(criteria,data,colors,markers,options,normalize=False,ax_ticks=[]):
+
+
+    ax_ticks_max_y = []
+    for crit_id in range(len(criteria)):
+        maximus = max([data[option_id][crit_id] for option_id in range(len(options))])
+        minimus = min([data[option_id][crit_id] for option_id in range(len(options))])
+        if normalize and maximus>minimus:
+            for option_id in range(len(options)):
+                data[option_id][crit_id] = (data[option_id][crit_id]-minimus)/(maximus-minimus)
+            ax_ticks_max_y.append(1)
+        else:
+            ax_ticks_max_y.append(maximus)
+
+
+
+    plot_dict={
+        "axes_projection":"polar",
+        # "colors":["red","green","blue"],
+        "rmax":1.04,
+        "values":{},
+        # "title":"multi",
+        "legends":{
+            "italic_legends":True,
+            "legend_loc":"best"}, #right, center left, upper right, lower right, best, center, lower left, center right, upper left, upper center, lower center
+        "x_ticks":{"major":{"labels":[]}},
+        "y_ticks":{"major":{"labels":[]}},
+        "grid":{"which":'major',"axis":"x"},
+    }
+
+    crit_props = {}
+
+    step_x = 2*np.pi/len(criteria)
+    offset_x = step_x/2 
+    xval = offset_x
+    xvals=[]
+    for crit in criteria:
+        xvals.append(xval)
+        crit_props[crit]={
+            "xval":xval,
+            "va":'bottom' if xval<np.pi else 'top',
+            "ha":'left' if xval<np.pi/2 or xval>3/2*np.pi else 'right',
+        }
+        crit_props[crit]["oppva"] = 'bottom' if crit_props[crit]["va"]=='top' else 'top'
+        crit_props[crit]["oppha"] = 'left' if crit_props[crit]["ha"]=='right' else 'right'
+        xval += step_x
+    xvals.append(offset_x)
+
+        #xval
+        #left
+        # etc.
+    for crit_id in range(len(criteria)):
+        crit = criteria[crit_id]
+        plot_dict["values"][len(plot_dict["values"])]={"type":"vline",'x_pos':[crit_props[crit]["xval"]],'color':'k'}
+        plot_dict["values"][len(plot_dict["values"])]={"type":"annotate","text":crit,"pos":(crit_props[crit]["xval"],1.),"va":crit_props[crit]["va"], "ha":crit_props[crit]["ha"], 'color':'k','xytext':(crit_props[crit]["xval"],1.05)}
+        if len(ax_ticks)>0:
+            plot_dict["values"][len(plot_dict["values"])]={"type":"annotate","text":ax_ticks[crit_id][0]+', '+ax_ticks[crit_id][1],"pos":(crit_props[crit]["xval"],0.7),"va":"center", "ha":"center", 'color':'k','xytext':(crit_props[crit]["xval"],.5),"rotation":-90+crit_props[crit]["xval"]/np.pi*180}
+
+
+    for option_id in range(len(options)):
+        option=options[option_id]
+        plot_dict["values"][len(plot_dict["values"])]={
+            "type":"plot",
+            "y_values":data[option_id]+[data[option_id][0]],"x_values":xvals, 
+            'color':colors[option_id], 'legend':option,
+            'marker':markers[option_id],'markersize':10}
+        plot_dict["values"][len(plot_dict["values"])]={
+            "type":"fill_between",
+            "y_values1":data[option_id]+[data[option_id][0]],
+            "x_values":xvals, 
+            'color':colors[option_id],
+            "alpha":.1}
+
+    return plot_dict
+
+
+def plot_indivs_multiproc(prepared_plots,show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=False, in_ax=None,user_defined_dpi=conf.dpi, file_pad_inches = 0.04, num_cpus = -1):
 
     params_set = []
     for plot in prepared_plots:
         params = {
-            "prepared_plots":{plot:prepared_plots[plot]},
+            "prepared_plots":{plot:dict(prepared_plots[plot])},
+            # "prepared_plots":{plot:prepared_plots[plot]},
             "show":show,
             "file_to_save":"{0}_{1}.{2}".format(file_to_save,plot,format_to_save),
             "format_to_save":format_to_save,
@@ -967,9 +1062,8 @@ def plot_indivs_multiproc(prepared_plots,show=False,file_to_save=None,format_to_
         }
         params_set.append(params)
 
-
-
-    with Pool(processes=cpu_count()-1 or 1) as p:
+    num_processes = num_cpus if num_cpus!=-1 else (cpu_count()-1 or 1)
+    with Pool(processes=num_processes) as p:
     # with Pool(processes=4) as p:
         # res=p.map(plot_indivs_wrapper, params_set)
         p.map(plot_indivs_wrapper, params_set)
@@ -1001,20 +1095,20 @@ def plot_indivs_multiproc(prepared_plots,show=False,file_to_save=None,format_to_
 def plot_indivs_wrapper(params):
     plot_indivs(
         params["prepared_plots"],
-        show=params["show"],
+        # show=params["show"],
         file_to_save=params["file_to_save"],
         format_to_save=params["format_to_save"],
         dir_to_save=params["dir_to_save"],
-        PDF_to_add=None,
-        from_page=False,
-        in_ax=None,
+        # PDF_to_add=None,
+        # from_page=False,
+        # in_ax=None,
         user_defined_dpi=params["user_defined_dpi"],
         file_pad_inches=params["file_pad_inches"]
         )
 
 
 
-def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=False, in_ax=None,user_defined_dpi=conf.dpi, file_pad_inches = 0.0):
+def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=False, in_ax=None,user_defined_dpi=conf.dpi,user_defined_figsize=conf.figsize, file_pad_inches = 0.0):
     #figs
     zeplt=plt
     has_predef_axes=not(in_ax is None)
@@ -1033,7 +1127,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             if has_predef_axes:
                 fig=zeplt.get_figure()
             else:
-                fig=zeplt.figure(num=plot, figsize=conf.figsize, dpi=conf.dpi)#, facecolor, edgecolor, frameon, FigureClass)
+                fig=zeplt.figure(num=plot, figsize=user_defined_figsize, dpi=conf.dpi)#, facecolor, edgecolor, frameon, FigureClass)
             if 'axes_projection' in prepared_plots[plot]:
                 if prepared_plots[plot]['axes_projection']=='polar':
                     fig.add_subplot(111, polar=True)
@@ -1053,7 +1147,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
             fontdict={'fontsize': conf.title_font_size,'verticalalignment': 'center','horizontalalignment': "center"}
             title_rotation='horizontal'
             title_x=.5
-            title_y=1.+conf.title_and_axes_labelpad/(72.*conf.figsize[1])
+            title_y=1.+conf.title_and_axes_labelpad/(72.*user_defined_figsize[1])
             # title_y=1.+conf.title_and_axes_labelpad/(72.*plt.gcf().get_size_inches()[1])
             title_pad=0
 
@@ -1196,8 +1290,25 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                     ax1.xaxis.set_ticklabels(ticks[key]["labels"],minor=(key=="minor"),fontsize=conf.ticks_labels_font_size+extra_xtick_label_size)
                 else:
                     if has_box_plots:
-                        ax1.xaxis.set_ticklabels([]) 
-        
+                        ax1.xaxis.set_ticklabels([])
+
+                if "label_params" in ticks[key]:
+                    if key=="major":
+                        these_tick_labels = ax1.xaxis.get_majorticklabels() 
+                    else:
+                        these_tick_labels = ax1.xaxis.get_minorticklabels()
+
+                    labels_ha="center"
+                    if "ha" in ticks[key]["label_params"]:
+                        labels_ha=ticks[key]["label_params"]["ha"]
+                    if "horizontalalignment" in ticks[key]["label_params"]:
+                        labels_ha=ticks[key]["label_params"]["horizontalalignment"]
+
+                    if "rotation" in ticks[key]["label_params"]:
+                        zeplt.setp(these_tick_labels, rotation=ticks[key]["label_params"]["rotation"], ha=labels_ha, rotation_mode="anchor")
+                    else:
+                        zeplt.setp(these_tick_labels, ha=labels_ha)
+
         if "y_ticks" in prepared_plots[plot]:
             ticks=prepared_plots[plot]["y_ticks"]
             for key in ticks:
@@ -1220,6 +1331,23 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                     
                 if "params" in ticks[key]:
                     ax1.tick_params(axis='y',which=key,**ticks[key]["params"])
+
+                if "label_params" in ticks[key]:
+                    if key=="major":
+                        these_tick_labels = ax1.yaxis.get_majorticklabels() 
+                    else:
+                        these_tick_labels = ax1.yaxis.get_minorticklabels()
+
+                    labels_ha="center"
+                    if "ha" in ticks[key]["label_params"]:
+                        labels_ha=ticks[key]["label_params"]["ha"]
+                    if "horizontalalignment" in ticks[key]["label_params"]:
+                        labels_ha=ticks[key]["label_params"]["horizontalalignment"]
+
+                    if "rotation" in ticks[key]["label_params"]:
+                        zeplt.setp(these_tick_labels, rotation=ticks[key]["label_params"]["rotation"], ha=labels_ha, rotation_mode="anchor")
+                    else:
+                        zeplt.setp(these_tick_labels, ha=labels_ha)
 
         if "twinx_ticks" in prepared_plots[plot]:
             ticks=prepared_plots[plot]["twinx_ticks"]
@@ -1244,6 +1372,23 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 if "params" in ticks[key]:
                     twinx_ax.tick_params(axis='y',which=key,**ticks[key]["params"])
 
+
+                if "label_params" in ticks[key]:
+                    if key=="major":
+                        these_tick_labels = twinx_ax.yaxis.get_majorticklabels() 
+                    else:
+                        these_tick_labels = twinx_ax.yaxis.get_minorticklabels()
+
+                    labels_ha="center"
+                    if "ha" in ticks[key]["label_params"]:
+                        labels_ha=ticks[key]["label_params"]["ha"]
+                    if "horizontalalignment" in ticks[key]["label_params"]:
+                        labels_ha=ticks[key]["label_params"]["horizontalalignment"]
+
+                    if "rotation" in ticks[key]["label_params"]:
+                        zeplt.setp(these_tick_labels, rotation=ticks[key]["label_params"]["rotation"], ha=labels_ha, rotation_mode="anchor")
+                    else:
+                        zeplt.setp(these_tick_labels, ha=labels_ha)
 
         for axis in ['top','bottom','left','right','polar', 'start', 'end', 'inner']:
             if axis in plt.gca().spines: 
@@ -1620,7 +1765,7 @@ def plot_pages(
     for page_id in range(nb_pages):
         print("setting page {0}/{1}... {2}".format(page_id+1,nb_pages,page_info))
         
-        pfig=plt.figure(num=page_id, figsize=conf.figsize, dpi=user_defined_dpi)
+        pfig=plt.figure(num=page_id, figsize=user_defined_size, dpi=user_defined_dpi)
         if len(page_specs) == 0:
             gs = pfig.add_gridspec(nb_plots_vert, nb_plots_hor)
             # gs = pfig.add_gridspec(nb_plots_vert, nb_plots_hor, left=0.0, right=1., wspace=0.0, hspace=0.)
@@ -1807,7 +1952,11 @@ if __name__ == '__main__':
         42:{"values":{
                 0:{"type":"plot","y_values":4000*(-3.2-.46*np.log(.00001+np.sinc((0.0003*np.arange(1,10000))**6)**2)), 'color_index':0, 'legend':'plot 0'},
                 1:{"type":"plot","y_values":10000*np.sin(np.linspace(1,10000,9)),"x_values":range(10000,1000,-1000),"linestyle":'--'},},
-            "y_ticks":{"major":{"scalar":True}},    
+            "y_ticks":{"major":{"scalar":True}},
+            "x_ticks":{
+                # "major":{"params":{"labelrotation":5}} also works
+                "major":{"label_params":{"rotation":12,"ha":"right"}}
+            },
             "xmin":3000,
             "ymin":-10200,                        
             "colors":["red","green","blue"],
@@ -1963,16 +2112,38 @@ if __name__ == '__main__':
             "ymax":10},
         6:{"values":{#10:{"type":"table","rows":['1', '2','3'], 'cols':['a', 'b'], "matrix":[['1a', '1b'], ['2a', '2b'], ['3a', '3b']],"line_width_prop":0.5,"col_height_prop":0.5}},
                 11:{"type":"table","rows":['1', '2','3'], 'cols':['a', 'b'], "matrix":[['1a', '1b'], ['2a', '2b'], ['3a', '3b']],
-                       "line_width_prop":0.5,"col_height_prop":0.5,"label_params":{"ylab_height_prop":0.1, "edges_off":True}}},
+                        # "cellLoc":"left",
+                       # "line_width_prop":.33,
+                       "col_height_prop":0.25,
+                        "zorder":6,
+                       "colWidths":[0.9,.02],
+                        "auto_set_font_size":True,
+                       "label_params":{"ylab_height_prop":0.1, "edges_off":True}},
+                12:{"type":"table","rows":['1', '2','3'], 'cols':['a', 'b'], "matrix":[['1a', '1b'], ['2a', '2b'], ['3a', '3b']],
+                        "cellLoc":"left",
+                       "col_height_prop":0.4,
+                        "zorder":7,
+                       "line_width_prop":.33,
+                       "auto_set_column_width":[0,2],
+                       "label_params":{"ylab_height_prop":0.1, "edges_off":True}},
+               10:{"type":"table","rows":['1', '2','3'], 'cols':['a', 'b'], "matrix":[['1a', '1b'], ['2a', '2b'], ['3a', '3b']],
+                        # "loc":'left',
+                        "zorder":5,
+                        # "cellLoc":"left",
+                       "line_width_prop":.25,"col_height_prop":0.75,
+                       # "auto_set_column_width":[2],
+                       "label_params":{"ylab_height_prop":0.1, "edges_off":True}}},
             "colors":["red","green","blue"],
             "file_to_save":"example4.png",
             "format_to_save":"png", ##png, pdf, ps, eps or svg.
             "dir_to_save":"test_plots_gen",
             "y_axis_label":"y label",
             "x_axis_label":"th x lbel",
-            "title":"the title of the plot",
+            "title":"Tables",
             "legends":{"manual_legends":legend_example},
-            "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]}},
+            "color_bar":{"default_bounds":True,"color_list":["red","green","blue"]},
+            "axis_off":True
+            },
         1:{"values":{
                 0:{"type":"scatter",'x_values':[5,6,7],'y_values':[1,5,2], 'color_index':0, 's':60, 'legend':'black 128'},
                 1:{"type":"scatter",'x_values':[4,5,3],'y_values':[1.5,5.5,1.6], 'color_index':1, 's':90, "marker":r'$\beta$', 'legend':'red beta scatter'}}, 
@@ -2257,6 +2428,13 @@ if __name__ == '__main__':
         "axis_off":True
     }
 
+    some_data[47] = prepare_radar_plot(
+        ["Critere A","Critere B","Critere C","Critere D"], # criteria,
+        [[.1,.2,.3,.4],[.5,.6,.7,.8],[.9,.3,.5,.1]], # data,
+        ["red","green","blue"], # colors,
+        ["x","o","s"], # markers,
+        ["option 1","option 2","option 3"], # options
+    )
 
     #empty/blank plot
     some_data[145]={
@@ -2315,6 +2493,7 @@ if __name__ == '__main__':
     plot_pages(prepared_plots, nb_plots_hor=2, nb_plots_vert=2, grid_specs=[(0,slice(None,None)),(1,0),(1,1)], show=False, file_to_save="plottings", format_to_save='svg', dir_to_save="test_plots_gen", PDF_to_add=pp1,user_defined_dpi=100)
     plot_pages(prepared_zoom_plots, nb_plots_hor=1, nb_plots_vert=1, show=False, PDF_to_add=pp1,user_defined_dpi=100)
     plot_pages({0:prepared_plots[46]}, nb_plots_hor=1, nb_plots_vert=1,
+        user_defines_size=False, user_defined_size=(6,14),
         page_specs={
             "left":0.,
             "right":.9,
@@ -2323,6 +2502,8 @@ if __name__ == '__main__':
             "wspace":0.5,
             "hspace":0.5
         },
-        show=False, PDF_to_add=pp1,user_defined_dpi=100)
+        show=False, PDF_to_add=pp1,user_defined_dpi=100,
+        user_defined_tlfs=8
+        )
     pp1.close()
     
