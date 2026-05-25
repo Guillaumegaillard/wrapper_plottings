@@ -18,6 +18,22 @@ import matplotlib.axes as maxes
 from matplotlib.ticker import ScalarFormatter
 from matplotlib.patches import PathPatch
 
+from multiprocessing import Pool,cpu_count
+
+with_pdf_merger = True
+try:
+    from pypdf import  PdfReader, PdfWriter
+except ModuleNotFoundError:
+    try:
+        from PyPDF2 import PdfReader, PdfWriter
+    except:
+        with_pdf_merger = False
+        print("You don't have a PDF merger, see:")
+        print("https://pypdf.readthedocs.io/en/latest/index.html") 
+
+# print(with_pdf_merger)
+# print(0/0)
+
 
 import io
 from PIL import Image
@@ -931,7 +947,71 @@ def plot_functions(plot_functions,colors,zeplt,should_be_legended=False):
     return(func_id, has_box_plots, other_legend_handles)
 
 
-def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=False, in_ax=None,user_defined_dpi=conf.dpi):
+
+
+def plot_indivs_multiproc(prepared_plots,show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=False, in_ax=None,user_defined_dpi=conf.dpi, file_pad_inches = 0.04):
+
+    params_set = []
+    for plot in prepared_plots:
+        params = {
+            "prepared_plots":{plot:prepared_plots[plot]},
+            "show":show,
+            "file_to_save":"{0}_{1}.{2}".format(file_to_save,plot,format_to_save),
+            "format_to_save":format_to_save,
+            "dir_to_save":dir_to_save,
+            "user_defined_dpi":user_defined_dpi,
+            "file_pad_inches":file_pad_inches
+        }
+        params_set.append(params)
+
+
+
+    with Pool(processes=cpu_count()-1 or 1) as p:
+    # with Pool(processes=4) as p:
+        # res=p.map(plot_indivs_wrapper, params_set)
+        p.map(plot_indivs_wrapper, params_set)
+
+
+    if with_pdf_merger:
+
+        pdfs_in=[]
+
+        for plot in prepared_plots:
+            fn = dir_to_save+'/'+"{0}_{1}".format(file_to_save,plot)+'.'+format_to_save
+            pages = [1]
+
+            pdfs_in.append({"fn":fn,"pages":pages})
+
+        with open(PDF_to_add, 'wb') as outfile:
+
+            writer = PdfWriter()
+
+            for ipf in pdfs_in:
+                # with open(ipf["fn"], 'rb') as infile:
+                reader = PdfReader(open(ipf["fn"], 'rb'))
+                for pid in ipf["pages"]:
+                    writer.add_page(reader.pages[pid-1])
+                # reader.close()
+
+            writer.write(outfile)
+
+def plot_indivs_wrapper(params):
+    plot_indivs(
+        params["prepared_plots"],
+        show=params["show"],
+        file_to_save=params["file_to_save"],
+        format_to_save=params["format_to_save"],
+        dir_to_save=params["dir_to_save"],
+        PDF_to_add=None,
+        from_page=False,
+        in_ax=None,
+        user_defined_dpi=params["user_defined_dpi"],
+        file_pad_inches=params["file_pad_inches"]
+        )
+
+
+
+def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,dir_to_save=None,PDF_to_add=None, from_page=False, in_ax=None,user_defined_dpi=conf.dpi, file_pad_inches = 0.0):
     #figs
     zeplt=plt
     has_predef_axes=not(in_ax is None)
@@ -1468,7 +1548,7 @@ def plot_indivs(prepared_plots,show=False,file_to_save=None,format_to_save=None,
                 path_to_save=dir_to_save+"/"+path_to_save
                 if not os.path.exists(dir_to_save):
                     os.makedirs(dir_to_save)
-            plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi,bbox_inches='tight',pad_inches=0)
+            plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi,bbox_inches='tight',pad_inches=file_pad_inches)
             # plt.savefig(path_to_save,format=format_to_save, dpi=user_defined_dpi)
         elif (not from_page) and "file_to_save" in prepared_plots[plot] and "format_to_save" in prepared_plots[plot]:
             path_to_save=prepared_plots[plot]["file_to_save"]
